@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Invoice Generator</h1>
+            <p class="subtitle">Загрузите CSV и создайте инвойсы по шаблону</p>
+        </header>
+
+        <!-- Step 1: Upload CSV -->
+        <section id="upload-section" class="section">
+            <div class="section-header">
+                <span class="step-number">1</span>
+                <h2>Загрузка CSV</h2>
+            </div>
+            <div class="upload-area" id="upload-area">
+                <input type="file" id="csv-input" accept=".csv" hidden>
+                <div class="upload-icon">📄</div>
+                <p>Перетащите CSV-файл сюда или</p>
+                <button class="btn btn-primary" id="upload-btn">Выберите файл</button>
+            </div>
+            <div id="file-info" class="file-info hidden">
+                <span class="file-name"></span>
+                <span class="file-stats"></span>
+                <button class="btn btn-small btn-outline" id="reset-btn">Загрузить другой</button>
+            </div>
+        </section>
+
+        <!-- Step 2: Field Mapping -->
+        <section id="mapping-section" class="section hidden">
+            <div class="section-header">
+                <span class="step-number">2</span>
+                <h2>Сопоставление полей</h2>
+                <button class="btn btn-small btn-outline" id="auto-map-btn">🔄 Автоопределение</button>
+            </div>
+            <div class="mapping-container">
+                <!-- Invoice Details -->
+                <div class="mapping-group">
+                    <h3>Реквизиты инвойса</h3>
+                    <div class="mapping-fields">
+                        <div class="mapping-row">
+                            <label>Invoice Number</label>
+                            <select data-field="invoice_number"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Issued on (дата выставления)</label>
+                            <select data-field="issued_on_date"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Due date (срок оплаты)</label>
+                            <select data-field="due_date"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Date of sale / supply</label>
+                            <select data-field="sale_date"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billed To -->
+                <div class="mapping-group">
+                    <h3>Плательщик (Billed to)</h3>
+                    <div class="mapping-fields">
+                        <div class="mapping-row">
+                            <label>Contact Name</label>
+                            <select data-field="client_contact_name"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Company Name</label>
+                            <select data-field="client_company_name"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Email</label>
+                            <select data-field="client_email"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Address Line 1</label>
+                            <select data-field="client_address_line1"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Address Line 2</label>
+                            <select data-field="client_address_line2"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- From -->
+                <div class="mapping-group">
+                    <h3>Отправитель (From)</h3>
+                    <div class="mapping-fields">
+                        <div class="mapping-row">
+                            <label>Company Name</label>
+                            <select data-field="seller_company_name"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Address</label>
+                            <select data-field="seller_address_line1"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item -->
+                <div class="mapping-group">
+                    <h3>Позиция (Item)</h3>
+                    <div class="mapping-fields">
+                        <div class="mapping-row">
+                            <label>Description</label>
+                            <select data-field="item_1_description"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Price</label>
+                            <select data-field="item_1_price"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Quantity</label>
+                            <select data-field="item_1_quantity"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Tax Rate</label>
+                            <select data-field="item_1_tax_rate"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Amount</label>
+                            <select data-field="item_1_amount"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals & Notes -->
+                <div class="mapping-group">
+                    <h3>Итоги и примечания</h3>
+                    <div class="mapping-fields">
+                        <div class="mapping-row">
+                            <label>Subtotal</label>
+                            <select data-field="subtotal_value"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Total</label>
+                            <select data-field="total_value"></select>
+                        </div>
+                        <div class="mapping-row">
+                            <label>Invoice Note</label>
+                            <select data-field="invoice_note_text"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mapping-actions">
+                <button class="btn btn-primary btn-large" id="apply-mapping-btn">Применить и перейти к превью →</button>
+            </div>
+        </section>
+
+        <!-- Step 3: Preview -->
+        <section id="preview-section" class="section hidden">
+            <div class="section-header">
+                <span class="step-number">3</span>
+                <h2>Превью инвойсов</h2>
+                <button class="btn btn-small btn-outline" id="back-to-mapping-btn">← Изменить mapping</button>
+            </div>
+
+            <!-- Options -->
+            <div class="preview-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="hide-empty-fields">
+                    <span class="checkmark"></span>
+                    Скрывать пустые поля на канве
+                </label>
+            </div>
+
+            <!-- Navigation -->
+            <div class="preview-navigation">
+                <button class="nav-btn" id="prev-btn">&lt;</button>
+                <span class="nav-info">Invoice <span id="current-index">1</span> of <span id="total-count">0</span></span>
+                <button class="nav-btn" id="next-btn">&gt;</button>
+            </div>
+
+            <!-- Invoice Canvas -->
+            <div class="canvas-wrapper">
+                <div class="invoice-canvas" id="invoice-canvas">
+                    <!-- Header -->
+                    <div class="invoice-header">
+                        <div class="company-title" id="canvas-seller-title">GLLS TELEPORTO TECHNOLOGIES LTD</div>
+                        <div class="invoice-title">Invoice</div>
+                    </div>
+
+                    <!-- Invoice Details -->
+                    <div class="invoice-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Invoice Number:</span>
+                            <span class="detail-value" id="canvas-invoice-number">INV-215</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Issued on:</span>
+                            <span class="detail-value" id="canvas-issued-on">18 November 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Due date:</span>
+                            <span class="detail-value" id="canvas-due-date">18 December 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date of sale / supply:</span>
+                            <span class="detail-value" id="canvas-sale-date">18 November 2025</span>
+                        </div>
+                    </div>
+
+                    <!-- Parties Section -->
+                    <div class="parties-section">
+                        <div class="party-block billed-to">
+                            <h3 class="party-title">Billed to</h3>
+                            <div class="party-content">
+                                <div class="party-line" id="canvas-client-name">Aleksandr Levkin</div>
+                                <div class="party-line" id="canvas-client-company">IP TECHNOLOGIES INC.</div>
+                                <div class="party-line" id="canvas-client-email">alex@ipnot.pro</div>
+                                <div class="party-line" id="canvas-client-address1">16192 Coastal Highway, Lewes,</div>
+                                <div class="party-line" id="canvas-client-address2">19958, Delaware, United States</div>
+                            </div>
+                        </div>
+                        <div class="party-block from">
+                            <h3 class="party-title">From</h3>
+                            <div class="party-content">
+                                <div class="party-line" id="canvas-seller-name">GLLS TELEPORTO TECHNOLOGIES LTD</div>
+                                <div class="party-line" id="canvas-seller-address">Peiraios, 30 1st floor, Flat/Off 1, 2023, Nicosia, Cyprus</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="items-section">
+                        <h3 class="items-title">Item</h3>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-name">Name / description</th>
+                                    <th class="col-price">Price</th>
+                                    <th class="col-qty">Quantity</th>
+                                    <th class="col-tax">Tax rate</th>
+                                    <th class="col-amount">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td id="canvas-item-desc">Teleporto Contract payment</td>
+                                    <td id="canvas-item-price">€920.00</td>
+                                    <td id="canvas-item-qty">1</td>
+                                    <td id="canvas-item-tax">-</td>
+                                    <td id="canvas-item-amount">€920.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <span class="total-label">Subtotal</span>
+                            <span class="total-value" id="canvas-subtotal">€920.00</span>
+                        </div>
+                        <div class="total-row total-final">
+                            <span class="total-label">Total</span>
+                            <span class="total-value" id="canvas-total">€920.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Note -->
+                    <div class="invoice-note">
+                        <div class="note-title">Invoice note</div>
+                        <div class="note-text" id="canvas-note">Terms of service: https://drive.google.com/drive/folders/1cQ656iwu9r0zkXZ-Eludx9o-lS831rvm?usp=sharing</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,602 @@
+/* ===== CSS Variables ===== */
+:root {
+    --color-bg: #f8f9fb;
+    --color-surface: #ffffff;
+    --color-primary: #1a1a2e;
+    --color-primary-light: #2d2d44;
+    --color-accent: #4361ee;
+    --color-accent-hover: #3a56d4;
+    --color-text: #1a1a2e;
+    --color-text-secondary: #64748b;
+    --color-border: #e2e8f0;
+    --color-border-light: #f1f5f9;
+    --color-success: #10b981;
+    --color-note-bg: #f1f5f9;
+    
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+/* ===== App Container ===== */
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* ===== App Header ===== */
+.app-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.app-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+}
+
+.app-header .subtitle {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+}
+
+/* ===== Sections ===== */
+.section {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.section.hidden {
+    display: none;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    flex: 1;
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--color-accent);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 50%;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--color-accent);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--color-border);
+    color: var(--color-text);
+    padding: 0.5rem 1rem;
+}
+
+.btn-outline:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+/* ===== Upload Section ===== */
+.upload-area {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: var(--color-border-light);
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+    border-color: var(--color-accent);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.upload-area p {
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-border-light);
+    border-radius: var(--radius-sm);
+    margin-top: 1rem;
+}
+
+.file-info .file-name {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.file-info .file-stats {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+/* ===== Mapping Section ===== */
+.mapping-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.mapping-group {
+    background: var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+}
+
+.mapping-group h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.mapping-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mapping-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.mapping-row label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.mapping-row select {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.mapping-row select:hover {
+    border-color: var(--color-primary-light);
+}
+
+.mapping-row select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+.mapping-actions {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+/* ===== Preview Section ===== */
+.preview-options {
+    margin-bottom: 1.5rem;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+.preview-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: var(--color-border-light);
+    border-radius: var(--radius-md);
+}
+
+.nav-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: var(--color-surface);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: white;
+}
+
+.nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.nav-info {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    min-width: 150px;
+    text-align: center;
+}
+
+/* ===== Invoice Canvas ===== */
+.canvas-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--color-border-light);
+    border-radius: var(--radius-md);
+}
+
+.invoice-canvas {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    padding: 40px 50px;
+    box-shadow: var(--shadow-lg);
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 11pt;
+    color: #000;
+    line-height: 1.4;
+}
+
+/* Invoice Header */
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.company-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #000;
+    max-width: 60%;
+}
+
+.invoice-title {
+    font-size: 28pt;
+    font-weight: 700;
+    color: #000;
+    font-style: italic;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* Invoice Details */
+.invoice-details {
+    margin-bottom: 35px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 6px;
+}
+
+.detail-label {
+    width: 120px;
+    font-size: 10pt;
+    color: #333;
+}
+
+.detail-value {
+    font-size: 10pt;
+    color: #000;
+}
+
+/* Parties Section */
+.parties-section {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 50px;
+}
+
+.party-block {
+    flex: 1;
+}
+
+.party-title {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 12px;
+}
+
+.party-content {
+    font-size: 10pt;
+    line-height: 1.6;
+}
+
+.party-line {
+    color: #000;
+}
+
+.party-line:empty {
+    display: none;
+}
+
+.party-line.hidden-field {
+    display: none;
+}
+
+/* Items Section */
+.items-section {
+    margin-bottom: 30px;
+}
+
+.items-title {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 15px;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.items-table thead tr {
+    border-bottom: 1px solid #000;
+}
+
+.items-table th {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+    padding: 10px 8px;
+    text-align: left;
+}
+
+.items-table th.col-price,
+.items-table th.col-qty,
+.items-table th.col-tax,
+.items-table th.col-amount {
+    text-align: right;
+}
+
+.items-table td {
+    font-size: 10pt;
+    color: #000;
+    padding: 12px 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+.items-table td:not(:first-child) {
+    text-align: right;
+}
+
+.col-name {
+    width: 40%;
+}
+
+.col-price,
+.col-qty,
+.col-tax,
+.col-amount {
+    width: 15%;
+}
+
+/* Totals Section */
+.totals-section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: 40px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    width: 280px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.total-row.total-final {
+    border-bottom: none;
+}
+
+.total-label {
+    font-size: 10pt;
+    color: #000;
+}
+
+.total-value {
+    font-size: 10pt;
+    color: #000;
+}
+
+.total-final .total-label,
+.total-final .total-value {
+    font-weight: 700;
+}
+
+/* Invoice Note */
+.invoice-note {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.note-title {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 8px;
+}
+
+.note-text {
+    font-size: 10pt;
+    color: #333;
+    word-break: break-word;
+}
+
+/* Hidden class for empty fields */
+.hidden-field {
+    display: none !important;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .app-container {
+        padding: 1rem;
+    }
+    
+    .canvas-wrapper {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+    
+    .invoice-canvas {
+        transform: scale(0.7);
+        transform-origin: top center;
+    }
+}
+
+@media (max-width: 600px) {
+    .app-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .section {
+        padding: 1.25rem;
+    }
+    
+    .mapping-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .invoice-canvas {
+        transform: scale(0.5);
+    }
+}
+
+/* ===== Utility ===== */
+.hidden {
+    display: none !important;
+}
+
