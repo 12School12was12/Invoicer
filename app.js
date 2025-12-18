@@ -244,9 +244,12 @@ async function autoMapFields() {
     // Get invoice field names
     const invoiceFields = Array.from(selects).map(s => s.dataset.field);
     
-    // Get sample data (first row)
+    // Get sample data (first row) - format as "ColumnHeader (sample value)"
     const sampleRow = rows[0] || {};
-    const sampleData = headers.map(h => `${h}: "${sampleRow[h] || ''}"`).join('\n');
+    const sampleData = headers.map(h => {
+        const val = sampleRow[h] || '';
+        return `"${h}" (sample: "${val.substring(0, 50)}")`;
+    }).join('\n');
     
     console.log('📊 Sample data for AI:', sampleData);
     
@@ -269,41 +272,44 @@ async function autoMapFields() {
                 messages: [
                     {
                         role: 'system',
-                        content: `You are a helper that maps CSV columns to invoice fields. 
-Return ONLY a JSON object mapping invoice fields to CSV column names.
-If no good match exists for a field, omit it from the result.
-Be smart about matching - consider the meaning and sample values.`
+                        content: `You are a helper that maps CSV column headers to invoice fields.
+IMPORTANT: Return CSV COLUMN NAMES (headers), NOT the sample values!
+Return ONLY a JSON object where keys are invoice field names and values are CSV column header names.
+If no good match exists for a field, omit it from the result.`
                     },
                     {
                         role: 'user',
-                        content: `Map these CSV columns to invoice fields.
+                        content: `Map these CSV column headers to invoice fields.
 
-CSV columns with sample values:
+Available CSV column headers (with sample values in parentheses):
 ${sampleData}
 
-Invoice fields to map:
+Invoice fields to map to CSV column headers:
 ${invoiceFields.join(', ')}
 
 Field descriptions:
-- invoice_number: Invoice ID/number
-- issued_on_date: Date invoice was issued
+- invoice_number: Invoice ID/number → look for "id", "Invoice Number", "PaymentIntent ID", etc.
+- issued_on_date: Date invoice was issued → look for "Created date", "Date", "Issued on", etc.
 - due_date: Payment due date
 - sale_date: Date of sale/supply
-- client_contact_name: Customer contact name
-- client_company_name: Customer company name
-- client_email: Customer email
-- client_address_line1: Customer address line 1
+- client_contact_name: Customer name → look for "Card Name", "Customer Name", "Name", etc.
+- client_company_name: Customer company
+- client_email: Customer email → look for "Customer Email", "Email", etc.
+- client_address_line1: Customer address → look for "Card Address Line1", "Address", etc.
 - client_address_line2: Customer address line 2
-- seller_company_name: Seller/vendor company name
+- seller_company_name: Seller/vendor company → look for "Statement Descriptor", "Merchant", etc.
 - seller_address_line1: Seller address
-- item_1_description: Item/service description
-- item_1_price: Item price
+- item_1_description: Item description → look for "Description", "Checkout Line Item Summary", etc.
+- item_1_price: Item price → look for "Amount", "Price", etc.
 - item_1_quantity: Item quantity
-- item_1_tax_rate: Tax rate
-- item_1_amount: Item total amount
+- item_1_tax_rate: Tax rate → look for "Fee", "Tax", etc.
+- item_1_amount: Item total → look for "Amount", "Converted Amount", etc.
 - subtotal_value: Subtotal before tax
-- total_value: Total amount
-- invoice_note_text: Notes/terms
+- total_value: Total → look for "Amount", "Total", "Converted Amount", etc.
+- invoice_note_text: Notes → look for "Description", "Seller Message", etc.
+
+REMEMBER: Return the CSV COLUMN HEADER NAMES, not the values!
+Example: {"client_email": "Customer Email", "total_value": "Amount"}
 
 Return JSON only, no markdown, no explanation.`
                     }
@@ -926,7 +932,11 @@ function init() {
 // Load test data if ?test parameter is present
 async function loadTestData() {
     try {
-        const response = await fetch('sample-invoices.csv');
+        // Check if we should load stripe test data
+        const isStripeTest = window.location.search.includes('stripe');
+        const csvFile = isStripeTest ? 'test-stripe.csv' : 'sample-invoices.csv';
+        
+        const response = await fetch(csvFile);
         const text = await response.text();
         state.csvData = parseCSV(text);
         
@@ -954,7 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
     init();
     
     // Check for test mode
-    if (window.location.search.includes('test')) {
+    if (window.location.search.includes('test') || window.location.search.includes('stripe')) {
         loadTestData();
     }
 });
