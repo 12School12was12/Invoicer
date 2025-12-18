@@ -560,6 +560,183 @@ body {
     display: none !important;
 }
 
+/* ===== Data Table Section ===== */
+.data-table-section {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.data-table-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--color-border-light);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.data-table-header:hover {
+    background: var(--color-border);
+}
+
+.data-table-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    flex: 1;
+}
+
+.toggle-icon {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.toggle-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.selected-count {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+}
+
+.selected-count span {
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.data-table-content {
+    padding: 1rem 1.25rem;
+    background: var(--color-surface);
+}
+
+.data-table-content.collapsed {
+    display: none;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.table-actions .btn-primary {
+    margin-left: auto;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border-light);
+    white-space: nowrap;
+}
+
+.data-table th {
+    background: var(--color-border-light);
+    font-weight: 600;
+    color: var(--color-text);
+    position: sticky;
+    top: 0;
+}
+
+.data-table td {
+    color: var(--color-text);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.data-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+    background: var(--color-border-light);
+}
+
+.data-table tbody tr.selected {
+    background: rgba(67, 97, 238, 0.1);
+}
+
+.data-table tbody tr.active {
+    background: rgba(67, 97, 238, 0.2);
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.col-checkbox {
+    width: 40px;
+    text-align: center !important;
+}
+
+.col-row-num {
+    width: 50px;
+    color: var(--color-text-secondary);
+}
+
+.data-table input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+}
+
+/* ===== Export Progress ===== */
+.export-progress {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--color-border-light);
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
     .app-container {

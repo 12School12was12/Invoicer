@@ -7,7 +7,10 @@ const state = {
     },
     mapping: {},
     currentRowIndex: 0,
-    hideEmptyFields: false
+    hideEmptyFields: false,
+    selectedRows: new Set(), // Selected row indices for export
+    tableCollapsed: false,
+    isExporting: false
 };
 
 // ===== DOM Elements =====
@@ -33,7 +36,24 @@ const elements = {
     nextBtn: document.getElementById('next-btn'),
     currentIndex: document.getElementById('current-index'),
     totalCount: document.getElementById('total-count'),
-    invoiceCanvas: document.getElementById('invoice-canvas')
+    invoiceCanvas: document.getElementById('invoice-canvas'),
+    
+    // Data Table
+    toggleTableBtn: document.getElementById('toggle-table-btn'),
+    tableToggleIcon: document.getElementById('table-toggle-icon'),
+    dataTableContent: document.getElementById('data-table-content'),
+    dataTableHeaderRow: document.getElementById('data-table-header-row'),
+    dataTableBody: document.getElementById('data-table-body'),
+    selectAllCheckbox: document.getElementById('select-all-checkbox'),
+    selectAllBtn: document.getElementById('select-all-btn'),
+    deselectAllBtn: document.getElementById('deselect-all-btn'),
+    selectedCount: document.getElementById('selected-count'),
+    exportBtn: document.getElementById('export-btn'),
+    
+    // Export Progress
+    exportProgress: document.getElementById('export-progress'),
+    progressFill: document.getElementById('progress-fill'),
+    progressText: document.getElementById('progress-text')
 };
 
 // ===== Field Definitions =====
@@ -287,6 +307,248 @@ function updateNavigation() {
     
     elements.prevBtn.disabled = state.currentRowIndex === 0;
     elements.nextBtn.disabled = state.currentRowIndex === total - 1;
+    
+    // Highlight current row in data table
+    highlightCurrentRow();
+}
+
+// ===== Data Table =====
+function renderDataTable() {
+    const { headers, rows } = state.csvData;
+    
+    // Clear existing content
+    elements.dataTableHeaderRow.innerHTML = `
+        <th class="col-checkbox"><input type="checkbox" id="select-all-checkbox"></th>
+        <th class="col-row-num">#</th>
+    `;
+    elements.dataTableBody.innerHTML = '';
+    
+    // Add header columns (show first 5 mapped fields or all headers if less)
+    const displayHeaders = headers.slice(0, 6);
+    displayHeaders.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        elements.dataTableHeaderRow.appendChild(th);
+    });
+    
+    // Add rows
+    rows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.dataset.rowIndex = index;
+        
+        // Checkbox cell
+        const checkboxTd = document.createElement('td');
+        checkboxTd.className = 'col-checkbox';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = state.selectedRows.has(index);
+        checkbox.addEventListener('change', (e) => {
+            e.stopPropagation();
+            toggleRowSelection(index);
+        });
+        checkboxTd.appendChild(checkbox);
+        tr.appendChild(checkboxTd);
+        
+        // Row number
+        const numTd = document.createElement('td');
+        numTd.className = 'col-row-num';
+        numTd.textContent = index + 1;
+        tr.appendChild(numTd);
+        
+        // Data cells
+        displayHeaders.forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = row[header] || '';
+            td.title = row[header] || '';
+            tr.appendChild(td);
+        });
+        
+        // Click to preview
+        tr.addEventListener('click', (e) => {
+            if (e.target.type !== 'checkbox') {
+                state.currentRowIndex = index;
+                renderInvoice(index);
+            }
+        });
+        
+        // Apply selected class
+        if (state.selectedRows.has(index)) {
+            tr.classList.add('selected');
+        }
+        
+        elements.dataTableBody.appendChild(tr);
+    });
+    
+    // Re-attach select all checkbox listener
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+    
+    updateSelectedCount();
+    highlightCurrentRow();
+}
+
+function toggleRowSelection(index) {
+    if (state.selectedRows.has(index)) {
+        state.selectedRows.delete(index);
+    } else {
+        state.selectedRows.add(index);
+    }
+    
+    const row = elements.dataTableBody.querySelector(`tr[data-row-index="${index}"]`);
+    if (row) {
+        row.classList.toggle('selected', state.selectedRows.has(index));
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        if (checkbox) checkbox.checked = state.selectedRows.has(index);
+    }
+    
+    updateSelectedCount();
+    updateSelectAllCheckbox();
+}
+
+function selectAllRows() {
+    state.csvData.rows.forEach((_, index) => {
+        state.selectedRows.add(index);
+    });
+    updateTableCheckboxes();
+    updateSelectedCount();
+}
+
+function deselectAllRows() {
+    state.selectedRows.clear();
+    updateTableCheckboxes();
+    updateSelectedCount();
+}
+
+function updateTableCheckboxes() {
+    const rows = elements.dataTableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const index = parseInt(row.dataset.rowIndex);
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        const isSelected = state.selectedRows.has(index);
+        
+        if (checkbox) checkbox.checked = isSelected;
+        row.classList.toggle('selected', isSelected);
+    });
+    updateSelectAllCheckbox();
+}
+
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    if (!selectAllCheckbox) return;
+    
+    const totalRows = state.csvData.rows.length;
+    const selectedCount = state.selectedRows.size;
+    
+    selectAllCheckbox.checked = selectedCount === totalRows && totalRows > 0;
+    selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalRows;
+}
+
+function handleSelectAllChange(e) {
+    if (e.target.checked) {
+        selectAllRows();
+    } else {
+        deselectAllRows();
+    }
+}
+
+function updateSelectedCount() {
+    elements.selectedCount.textContent = state.selectedRows.size;
+}
+
+function highlightCurrentRow() {
+    const rows = elements.dataTableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const index = parseInt(row.dataset.rowIndex);
+        row.classList.toggle('active', index === state.currentRowIndex);
+    });
+}
+
+function toggleTableCollapse() {
+    state.tableCollapsed = !state.tableCollapsed;
+    elements.dataTableContent.classList.toggle('collapsed', state.tableCollapsed);
+    elements.tableToggleIcon.classList.toggle('collapsed', state.tableCollapsed);
+}
+
+// ===== Export =====
+async function exportSelectedInvoices() {
+    if (state.selectedRows.size === 0) {
+        alert('Выберите хотя бы один инвойс для экспорта');
+        return;
+    }
+    
+    if (state.isExporting) return;
+    state.isExporting = true;
+    
+    // Show progress
+    elements.exportProgress.classList.remove('hidden');
+    elements.exportBtn.disabled = true;
+    
+    const zip = new JSZip();
+    const selectedIndices = Array.from(state.selectedRows).sort((a, b) => a - b);
+    const total = selectedIndices.length;
+    
+    try {
+        for (let i = 0; i < selectedIndices.length; i++) {
+            const rowIndex = selectedIndices[i];
+            
+            // Update progress
+            const progress = Math.round(((i + 1) / total) * 100);
+            elements.progressFill.style.width = `${progress}%`;
+            elements.progressText.textContent = `Генерация инвойса ${i + 1} из ${total}...`;
+            
+            // Render the invoice for this row
+            renderInvoice(rowIndex);
+            
+            // Wait for render
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Capture canvas as image
+            const canvas = await html2canvas(elements.invoiceCanvas, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+            
+            // Convert to blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            
+            // Get invoice number for filename
+            const row = state.csvData.rows[rowIndex];
+            const invoiceNumCol = state.mapping['invoice_number'];
+            const invoiceNum = invoiceNumCol ? (row[invoiceNumCol] || `invoice_${rowIndex + 1}`) : `invoice_${rowIndex + 1}`;
+            const safeFilename = invoiceNum.replace(/[^a-zA-Z0-9_-]/g, '_');
+            
+            // Add to zip
+            zip.file(`${safeFilename}.png`, blob);
+        }
+        
+        // Generate and download zip
+        elements.progressText.textContent = 'Создание архива...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        // Download
+        const timestamp = new Date().toISOString().slice(0, 10);
+        saveAs(zipBlob, `invoices_${timestamp}.zip`);
+        
+        elements.progressText.textContent = 'Готово!';
+        
+        // Hide progress after delay
+        setTimeout(() => {
+            elements.exportProgress.classList.add('hidden');
+            elements.progressFill.style.width = '0%';
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Ошибка при экспорте: ' + error.message);
+        elements.exportProgress.classList.add('hidden');
+    } finally {
+        state.isExporting = false;
+        elements.exportBtn.disabled = false;
+        
+        // Restore current row view
+        renderInvoice(state.currentRowIndex);
+    }
 }
 
 // ===== Event Handlers =====
@@ -345,6 +607,7 @@ function handleReset() {
     state.csvData = { headers: [], rows: [], delimiter: ',' };
     state.mapping = {};
     state.currentRowIndex = 0;
+    state.selectedRows.clear();
     
     elements.uploadArea.classList.remove('hidden');
     elements.fileInfo.classList.add('hidden');
@@ -362,8 +625,10 @@ function handleApplyMapping() {
     }
     
     state.currentRowIndex = 0;
+    state.selectedRows.clear(); // Reset selection
     elements.previewSection.classList.remove('hidden');
     renderInvoice(0);
+    renderDataTable();
     
     // Scroll to preview
     elements.previewSection.scrollIntoView({ behavior: 'smooth' });
@@ -424,6 +689,12 @@ function init() {
     elements.hideEmptyCheckbox.addEventListener('change', handleHideEmptyToggle);
     elements.prevBtn.addEventListener('click', handlePrevRow);
     elements.nextBtn.addEventListener('click', handleNextRow);
+    
+    // Data Table events
+    elements.toggleTableBtn.addEventListener('click', toggleTableCollapse);
+    elements.selectAllBtn.addEventListener('click', selectAllRows);
+    elements.deselectAllBtn.addEventListener('click', deselectAllRows);
+    elements.exportBtn.addEventListener('click', exportSelectedInvoices);
     
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyDown);

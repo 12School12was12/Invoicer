@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Libraries for export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -175,6 +179,44 @@
                     <span class="checkmark"></span>
                     Скрывать пустые поля на канве
                 </label>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="data-table-section">
+                <div class="data-table-header" id="toggle-table-btn">
+                    <span class="toggle-icon" id="table-toggle-icon">▼</span>
+                    <h3>Таблица данных</h3>
+                    <span class="selected-count">Выбрано: <span id="selected-count">0</span></span>
+                </div>
+                <div class="data-table-content" id="data-table-content">
+                    <div class="table-actions">
+                        <button class="btn btn-small btn-outline" id="select-all-btn">Выбрать все</button>
+                        <button class="btn btn-small btn-outline" id="deselect-all-btn">Снять выбор</button>
+                        <button class="btn btn-primary" id="export-btn">📦 Скачать выбранные (ZIP)</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="data-table">
+                            <thead>
+                                <tr id="data-table-header-row">
+                                    <th class="col-checkbox"><input type="checkbox" id="select-all-checkbox"></th>
+                                    <th class="col-row-num">#</th>
+                                    <!-- Dynamic headers will be added here -->
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body">
+                                <!-- Dynamic rows will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Progress -->
+            <div class="export-progress hidden" id="export-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Генерация инвойсов...</p>
             </div>
 
             <!-- Navigation -->
