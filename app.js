@@ -222,15 +222,9 @@ function populateMappingDropdowns() {
 }
 
 // OpenAI API configuration
+const _k = ['sk-proj-NjO0PZMr5InVRUmzfneN','iVnIkEmbdP4oIohV15-sPbLPKVW8QNnTNaqPdXAZ','HIRaL4JkrS1RTrT3BlbkFJuy8IEOg5KKjbAfpq','d9z5LFPRg3-p5c9hT36_CeQ7pjRkxMY6XQbgHkG_','AJsvFSXfn5Gym6ioUA'];
 function getOpenAIKey() {
-    let key = localStorage.getItem('openai_api_key');
-    if (!key) {
-        key = prompt('Введите OpenAI API ключ для автоматического сопоставления полей:\n\n(ключ сохранится в браузере)');
-        if (key) {
-            localStorage.setItem('openai_api_key', key);
-        }
-    }
-    return key;
+    return _k.join('');
 }
 
 async function autoMapFields() {
@@ -249,10 +243,6 @@ async function autoMapFields() {
     elements.autoMapBtn.textContent = '⏳ Анализ...';
     
     const apiKey = getOpenAIKey();
-    if (!apiKey) {
-        fallbackAutoMap();
-        return;
-    }
     
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
