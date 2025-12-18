@@ -659,6 +659,26 @@ body {
     top: 0;
 }
 
+.data-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+}
+
+.data-table th.sortable:hover {
+    background: var(--color-border);
+}
+
+.data-table th.sorted {
+    background: rgba(67, 97, 238, 0.15);
+    color: var(--color-accent);
+}
+
+.sort-indicator {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
 .data-table td {
     color: var(--color-text);
     max-width: 200px;

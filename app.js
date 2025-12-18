@@ -10,7 +10,10 @@ const state = {
     hideEmptyFields: false,
     selectedRows: new Set(), // Selected row indices for export
     tableCollapsed: false,
-    isExporting: false
+    isExporting: false,
+    sortColumn: null,      // Current sort column name
+    sortDirection: 'asc',  // 'asc' or 'desc'
+    sortedIndices: []      // Array of row indices in sorted order
 };
 
 // ===== DOM Elements =====
@@ -316,6 +319,11 @@ function updateNavigation() {
 function renderDataTable() {
     const { headers, rows } = state.csvData;
     
+    // Initialize sorted indices if not set
+    if (state.sortedIndices.length !== rows.length) {
+        state.sortedIndices = rows.map((_, i) => i);
+    }
+    
     // Clear existing content
     elements.dataTableHeaderRow.innerHTML = `
         <th class="col-checkbox"><input type="checkbox" id="select-all-checkbox"></th>
@@ -327,32 +335,52 @@ function renderDataTable() {
     const displayHeaders = headers;
     displayHeaders.forEach(header => {
         const th = document.createElement('th');
-        th.textContent = header;
+        th.className = 'sortable';
+        th.dataset.column = header;
+        
+        // Create header content with sort indicator
+        const headerText = document.createElement('span');
+        headerText.textContent = header;
+        th.appendChild(headerText);
+        
+        // Add sort indicator
+        const sortIndicator = document.createElement('span');
+        sortIndicator.className = 'sort-indicator';
+        if (state.sortColumn === header) {
+            sortIndicator.textContent = state.sortDirection === 'asc' ? ' ▲' : ' ▼';
+            th.classList.add('sorted');
+        }
+        th.appendChild(sortIndicator);
+        
+        // Click to sort
+        th.addEventListener('click', () => sortTable(header));
+        
         elements.dataTableHeaderRow.appendChild(th);
     });
     
-    // Add rows
-    rows.forEach((row, index) => {
+    // Add rows in sorted order
+    state.sortedIndices.forEach((originalIndex) => {
+        const row = rows[originalIndex];
         const tr = document.createElement('tr');
-        tr.dataset.rowIndex = index;
+        tr.dataset.rowIndex = originalIndex;
         
         // Checkbox cell
         const checkboxTd = document.createElement('td');
         checkboxTd.className = 'col-checkbox';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = state.selectedRows.has(index);
+        checkbox.checked = state.selectedRows.has(originalIndex);
         checkbox.addEventListener('change', (e) => {
             e.stopPropagation();
-            toggleRowSelection(index);
+            toggleRowSelection(originalIndex);
         });
         checkboxTd.appendChild(checkbox);
         tr.appendChild(checkboxTd);
         
-        // Row number
+        // Row number (original index)
         const numTd = document.createElement('td');
         numTd.className = 'col-row-num';
-        numTd.textContent = index + 1;
+        numTd.textContent = originalIndex + 1;
         tr.appendChild(numTd);
         
         // Data cells
@@ -366,13 +394,13 @@ function renderDataTable() {
         // Click to preview
         tr.addEventListener('click', (e) => {
             if (e.target.type !== 'checkbox') {
-                state.currentRowIndex = index;
-                renderInvoice(index);
+                state.currentRowIndex = originalIndex;
+                renderInvoice(originalIndex);
             }
         });
         
         // Apply selected class
-        if (state.selectedRows.has(index)) {
+        if (state.selectedRows.has(originalIndex)) {
             tr.classList.add('selected');
         }
         
@@ -385,6 +413,45 @@ function renderDataTable() {
     
     updateSelectedCount();
     highlightCurrentRow();
+}
+
+// Sort table by column
+function sortTable(column) {
+    const { rows } = state.csvData;
+    
+    // Toggle direction if same column, otherwise default to asc
+    if (state.sortColumn === column) {
+        state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.sortColumn = column;
+        state.sortDirection = 'asc';
+    }
+    
+    // Create array of indices and sort
+    state.sortedIndices = rows.map((_, i) => i);
+    
+    state.sortedIndices.sort((a, b) => {
+        let valA = rows[a][column] || '';
+        let valB = rows[b][column] || '';
+        
+        // Try to parse as numbers
+        const numA = parseFloat(valA.replace(/[^0-9.-]/g, ''));
+        const numB = parseFloat(valB.replace(/[^0-9.-]/g, ''));
+        
+        let comparison;
+        if (!isNaN(numA) && !isNaN(numB)) {
+            // Numeric comparison
+            comparison = numA - numB;
+        } else {
+            // String comparison
+            comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+        }
+        
+        return state.sortDirection === 'asc' ? comparison : -comparison;
+    });
+    
+    // Re-render table
+    renderDataTable();
 }
 
 function toggleRowSelection(index) {
@@ -608,6 +675,9 @@ function handleReset() {
     state.mapping = {};
     state.currentRowIndex = 0;
     state.selectedRows.clear();
+    state.sortColumn = null;
+    state.sortDirection = 'asc';
+    state.sortedIndices = [];
     
     elements.uploadArea.classList.remove('hidden');
     elements.fileInfo.classList.add('hidden');
@@ -626,6 +696,10 @@ function handleApplyMapping() {
     
     state.currentRowIndex = 0;
     state.selectedRows.clear(); // Reset selection
+    state.sortColumn = null;    // Reset sort
+    state.sortDirection = 'asc';
+    state.sortedIndices = state.csvData.rows.map((_, i) => i);
+    
     elements.previewSection.classList.remove('hidden');
     renderInvoice(0);
     renderDataTable();
