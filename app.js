@@ -544,6 +544,9 @@ async function exportSelectedInvoices() {
     const selectedIndices = Array.from(state.selectedRows).sort((a, b) => a - b);
     const total = selectedIndices.length;
     
+    // Get jsPDF from window
+    const { jsPDF } = window.jspdf;
+    
     try {
         for (let i = 0; i < selectedIndices.length; i++) {
             const rowIndex = selectedIndices[i];
@@ -551,7 +554,7 @@ async function exportSelectedInvoices() {
             // Update progress
             const progress = Math.round(((i + 1) / total) * 100);
             elements.progressFill.style.width = `${progress}%`;
-            elements.progressText.textContent = `Генерация инвойса ${i + 1} из ${total}...`;
+            elements.progressText.textContent = `Генерация PDF ${i + 1} из ${total}...`;
             
             // Render the invoice for this row
             renderInvoice(rowIndex);
@@ -566,8 +569,25 @@ async function exportSelectedInvoices() {
                 backgroundColor: '#ffffff'
             });
             
-            // Convert to blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            // Create PDF (A4 size)
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // Calculate dimensions to fit A4
+            const imgData = canvas.toDataURL('image/png');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            // Scale image to fit page width while maintaining aspect ratio
+            const canvasAspect = canvas.height / canvas.width;
+            const imgWidth = pdfWidth;
+            const imgHeight = pdfWidth * canvasAspect;
+            
+            // Add image to PDF
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
             
             // Get invoice number for filename
             const row = state.csvData.rows[rowIndex];
@@ -575,8 +595,9 @@ async function exportSelectedInvoices() {
             const invoiceNum = invoiceNumCol ? (row[invoiceNumCol] || `invoice_${rowIndex + 1}`) : `invoice_${rowIndex + 1}`;
             const safeFilename = invoiceNum.replace(/[^a-zA-Z0-9_-]/g, '_');
             
-            // Add to zip
-            zip.file(`${safeFilename}.png`, blob);
+            // Add PDF to zip
+            const pdfBlob = pdf.output('blob');
+            zip.file(`${safeFilename}.pdf`, pdfBlob);
         }
         
         // Generate and download zip

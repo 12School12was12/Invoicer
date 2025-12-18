@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Libraries for export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="app.js" defer></script>
@@ -201,7 +202,7 @@
                     <div class="table-actions">
                         <button class="btn btn-small btn-outline" id="select-all-btn">Выбрать все</button>
                         <button class="btn btn-small btn-outline" id="deselect-all-btn">Снять выбор</button>
-                        <button class="btn btn-primary" id="export-btn">📦 Скачать (ZIP)</button>
+                        <button class="btn btn-primary" id="export-btn">📦 Скачать PDF (ZIP)</button>
                     </div>
                     <div class="table-scroll-container">
                         <table class="data-table" id="data-table">
