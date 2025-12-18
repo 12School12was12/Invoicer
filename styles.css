@@ -750,6 +750,27 @@ body {
 }
 
 /* ===== Responsive ===== */
+@media (max-width: 1200px) {
+    .preview-layout {
+        flex-direction: column;
+    }
+    
+    .data-table-panel {
+        max-width: 100%;
+        min-width: 100%;
+        max-height: 400px;
+    }
+    
+    .invoice-preview-panel {
+        width: 100%;
+    }
+    
+    .canvas-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 900px) {
     .app-container {
         padding: 1rem;
