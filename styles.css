@@ -557,12 +557,23 @@ body {
     display: none !important;
 }
 
-/* ===== Data Table Section ===== */
-.data-table-section {
-    margin-bottom: 1.5rem;
+/* ===== Preview Layout (Table + Canvas side by side) ===== */
+.preview-layout {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+/* Data Table Panel */
+.data-table-panel {
+    flex: 1;
+    min-width: 0;
+    max-width: 50%;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    overflow: hidden;
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
 }
 
 .data-table-header {
@@ -571,13 +582,7 @@ body {
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     background: var(--color-border-light);
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.2s ease;
-}
-
-.data-table-header:hover {
-    background: var(--color-border);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .data-table-header h3 {
@@ -586,16 +591,6 @@ body {
     color: var(--color-text);
     margin: 0;
     flex: 1;
-}
-
-.toggle-icon {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    transition: transform 0.2s ease;
-}
-
-.toggle-icon.collapsed {
-    transform: rotate(-90deg);
 }
 
 .selected-count {
@@ -611,30 +606,28 @@ body {
     color: var(--color-accent);
 }
 
-.data-table-content {
-    padding: 1rem 1.25rem;
-    background: var(--color-surface);
-}
-
-.data-table-content.collapsed {
-    display: none;
-}
-
 .table-actions {
     display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
     flex-wrap: wrap;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .table-actions .btn-primary {
     margin-left: auto;
 }
 
-.table-wrapper {
-    overflow-x: auto;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+.table-scroll-container {
+    overflow: auto;
+    max-height: 600px;
+    flex: 1;
+}
+
+/* Invoice Preview Panel */
+.invoice-preview-panel {
+    flex-shrink: 0;
+    width: fit-content;
 }
 
 .data-table {

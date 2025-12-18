@@ -182,20 +182,28 @@
                 </label>
             </div>
 
-            <!-- Data Table Section -->
-            <div class="data-table-section">
-                <div class="data-table-header" id="toggle-table-btn">
-                    <span class="toggle-icon" id="table-toggle-icon">▼</span>
-                    <h3>Таблица данных</h3>
-                    <span class="selected-count">Выбрано: <span id="selected-count">0</span></span>
+            <!-- Export Progress -->
+            <div class="export-progress hidden" id="export-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
                 </div>
-                <div class="data-table-content" id="data-table-content">
+                <p class="progress-text" id="progress-text">Генерация инвойсов...</p>
+            </div>
+
+            <!-- Main Content: Table + Preview side by side -->
+            <div class="preview-layout">
+                <!-- Data Table Panel -->
+                <div class="data-table-panel">
+                    <div class="data-table-header">
+                        <h3>Таблица данных</h3>
+                        <span class="selected-count">Выбрано: <span id="selected-count">0</span></span>
+                    </div>
                     <div class="table-actions">
                         <button class="btn btn-small btn-outline" id="select-all-btn">Выбрать все</button>
                         <button class="btn btn-small btn-outline" id="deselect-all-btn">Снять выбор</button>
-                        <button class="btn btn-primary" id="export-btn">📦 Скачать выбранные (ZIP)</button>
+                        <button class="btn btn-primary" id="export-btn">📦 Скачать (ZIP)</button>
                     </div>
-                    <div class="table-wrapper">
+                    <div class="table-scroll-container">
                         <table class="data-table" id="data-table">
                             <thead>
                                 <tr id="data-table-header-row">
@@ -210,26 +218,19 @@
                         </table>
                     </div>
                 </div>
-            </div>
 
-            <!-- Export Progress -->
-            <div class="export-progress hidden" id="export-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <p class="progress-text" id="progress-text">Генерация инвойсов...</p>
-            </div>
+                <!-- Invoice Preview Panel -->
+                <div class="invoice-preview-panel">
+                    <!-- Navigation -->
+                    <div class="preview-navigation">
+                        <button class="nav-btn" id="prev-btn">&lt;</button>
+                        <span class="nav-info">Invoice <span id="current-index">1</span> of <span id="total-count">0</span></span>
+                        <button class="nav-btn" id="next-btn">&gt;</button>
+                    </div>
 
-            <!-- Navigation -->
-            <div class="preview-navigation">
-                <button class="nav-btn" id="prev-btn">&lt;</button>
-                <span class="nav-info">Invoice <span id="current-index">1</span> of <span id="total-count">0</span></span>
-                <button class="nav-btn" id="next-btn">&gt;</button>
-            </div>
-
-            <!-- Invoice Canvas -->
-            <div class="canvas-wrapper">
-                <div class="invoice-canvas" id="invoice-canvas">
+                    <!-- Invoice Canvas -->
+                    <div class="canvas-wrapper">
+                        <div class="invoice-canvas" id="invoice-canvas">
                     <!-- Header -->
                     <div class="invoice-header">
                         <div class="company-title" id="canvas-seller-title">GLLS TELEPORTO TECHNOLOGIES LTD</div>
@@ -318,6 +319,8 @@
                     <div class="invoice-note">
                         <div class="note-title">Invoice note</div>
                         <div class="note-text" id="canvas-note">Terms of service: https://drive.google.com/drive/folders/1cQ656iwu9r0zkXZ-Eludx9o-lS831rvm?usp=sharing</div>
+                    </div>
+                        </div>
                     </div>
                 </div>
             </div>

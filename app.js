@@ -9,7 +9,6 @@ const state = {
     currentRowIndex: 0,
     hideEmptyFields: false,
     selectedRows: new Set(), // Selected row indices for export
-    tableCollapsed: false,
     isExporting: false,
     sortColumn: null,      // Current sort column name
     sortDirection: 'asc',  // 'asc' or 'desc'
@@ -42,9 +41,6 @@ const elements = {
     invoiceCanvas: document.getElementById('invoice-canvas'),
     
     // Data Table
-    toggleTableBtn: document.getElementById('toggle-table-btn'),
-    tableToggleIcon: document.getElementById('table-toggle-icon'),
-    dataTableContent: document.getElementById('data-table-content'),
     dataTableHeaderRow: document.getElementById('data-table-header-row'),
     dataTableBody: document.getElementById('data-table-body'),
     selectAllCheckbox: document.getElementById('select-all-checkbox'),
@@ -530,12 +526,6 @@ function highlightCurrentRow() {
     });
 }
 
-function toggleTableCollapse() {
-    state.tableCollapsed = !state.tableCollapsed;
-    elements.dataTableContent.classList.toggle('collapsed', state.tableCollapsed);
-    elements.tableToggleIcon.classList.toggle('collapsed', state.tableCollapsed);
-}
-
 // ===== Export =====
 async function exportSelectedInvoices() {
     if (state.selectedRows.size === 0) {
@@ -765,7 +755,6 @@ function init() {
     elements.nextBtn.addEventListener('click', handleNextRow);
     
     // Data Table events
-    elements.toggleTableBtn.addEventListener('click', toggleTableCollapse);
     elements.selectAllBtn.addEventListener('click', selectAllRows);
     elements.deselectAllBtn.addEventListener('click', deselectAllRows);
     elements.exportBtn.addEventListener('click', exportSelectedInvoices);
