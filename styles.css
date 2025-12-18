@@ -381,11 +381,6 @@ body {
     font-size: 28pt;
     font-weight: 700;
     color: #000;
-    font-style: italic;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    border: 3px solid #e74c3c;
-    padding: 8px 20px;
 }
 
 /* Invoice Details */
