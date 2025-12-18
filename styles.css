@@ -44,7 +44,7 @@ body {
 
 /* ===== App Container ===== */
 .app-container {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 2rem;
 }
@@ -750,7 +750,7 @@ body {
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
     .preview-layout {
         flex-direction: column;
     }
