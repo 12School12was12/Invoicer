@@ -230,11 +230,8 @@ function getOpenAIKey() {
 async function autoMapFields() {
     const { headers, rows } = state.csvData;
     
-    console.log('🤖 AutoMap started, headers:', headers);
-    
     // If no data loaded, use fallback
     if (!headers || headers.length === 0) {
-        console.log('No headers, using fallback');
         fallbackAutoMap();
         return;
     }
@@ -251,14 +248,11 @@ async function autoMapFields() {
         return `"${h}" (sample: "${val.substring(0, 50)}")`;
     }).join('\n');
     
-    console.log('📊 Sample data for AI:', sampleData);
-    
     // Show loading state
     elements.autoMapBtn.disabled = true;
     elements.autoMapBtn.textContent = '⏳ AI анализ...';
     
     const apiKey = getOpenAIKey();
-    console.log('🔑 API key length:', apiKey.length);
     
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -319,23 +313,15 @@ Return JSON only, no markdown, no explanation.`
             })
         });
         
-        console.log('📡 API response status:', response.status);
-        
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API error:', errorText);
             throw new Error(`OpenAI API error: ${response.status}`);
         }
         
         const data = await response.json();
         const content = data.choices[0].message.content.trim();
         
-        console.log('🤖 AI response:', content);
-        
         // Parse JSON response
         const mapping = JSON.parse(content);
-        
-        console.log('📋 Parsed mapping:', mapping);
         
         // Apply mapping to selects
         let mappedCount = 0;
@@ -344,11 +330,9 @@ Return JSON only, no markdown, no explanation.`
             if (mapping[fieldName] && headers.includes(mapping[fieldName])) {
                 select.value = mapping[fieldName];
                 mappedCount++;
-                console.log(`✅ Mapped ${fieldName} -> ${mapping[fieldName]}`);
             }
         });
         
-        console.log(`🎯 Total mapped: ${mappedCount} fields`);
         saveMappingState();
         
     } catch (error) {
