@@ -221,7 +221,127 @@ function populateMappingDropdowns() {
     });
 }
 
-function autoMapFields() {
+// OpenAI API configuration
+function getOpenAIKey() {
+    let key = localStorage.getItem('openai_api_key');
+    if (!key) {
+        key = prompt('Введите OpenAI API ключ для автоматического сопоставления полей:\n\n(ключ сохранится в браузере)');
+        if (key) {
+            localStorage.setItem('openai_api_key', key);
+        }
+    }
+    return key;
+}
+
+async function autoMapFields() {
+    const { headers, rows } = state.csvData;
+    const selects = document.querySelectorAll('.mapping-row select');
+    
+    // Get invoice field names
+    const invoiceFields = Array.from(selects).map(s => s.dataset.field);
+    
+    // Get sample data (first row)
+    const sampleRow = rows[0] || {};
+    const sampleData = headers.map(h => `${h}: "${sampleRow[h] || ''}"`).join('\n');
+    
+    // Show loading state
+    elements.autoMapBtn.disabled = true;
+    elements.autoMapBtn.textContent = '⏳ Анализ...';
+    
+    const apiKey = getOpenAIKey();
+    if (!apiKey) {
+        fallbackAutoMap();
+        return;
+    }
+    
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a helper that maps CSV columns to invoice fields. 
+Return ONLY a JSON object mapping invoice fields to CSV column names.
+If no good match exists for a field, omit it from the result.
+Be smart about matching - consider the meaning and sample values.`
+                    },
+                    {
+                        role: 'user',
+                        content: `Map these CSV columns to invoice fields.
+
+CSV columns with sample values:
+${sampleData}
+
+Invoice fields to map:
+${invoiceFields.join(', ')}
+
+Field descriptions:
+- invoice_number: Invoice ID/number
+- issued_on_date: Date invoice was issued
+- due_date: Payment due date
+- sale_date: Date of sale/supply
+- client_contact_name: Customer contact name
+- client_company_name: Customer company name
+- client_email: Customer email
+- client_address_line1: Customer address line 1
+- client_address_line2: Customer address line 2
+- seller_company_name: Seller/vendor company name
+- seller_address_line1: Seller address
+- item_1_description: Item/service description
+- item_1_price: Item price
+- item_1_quantity: Item quantity
+- item_1_tax_rate: Tax rate
+- item_1_amount: Item total amount
+- subtotal_value: Subtotal before tax
+- total_value: Total amount
+- invoice_note_text: Notes/terms
+
+Return JSON only, no markdown, no explanation.`
+                    }
+                ],
+                temperature: 0.1,
+                max_tokens: 500
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const content = data.choices[0].message.content.trim();
+        
+        // Parse JSON response
+        const mapping = JSON.parse(content);
+        
+        // Apply mapping to selects
+        selects.forEach(select => {
+            const fieldName = select.dataset.field;
+            if (mapping[fieldName] && headers.includes(mapping[fieldName])) {
+                select.value = mapping[fieldName];
+            }
+        });
+        
+        saveMappingState();
+        
+    } catch (error) {
+        console.error('OpenAI mapping error:', error);
+        // Fallback to simple matching
+        fallbackAutoMap();
+    } finally {
+        elements.autoMapBtn.disabled = false;
+        elements.autoMapBtn.textContent = '🔄 Автоопределение';
+    }
+}
+
+// Fallback simple matching if OpenAI fails
+function fallbackAutoMap() {
     const { headers } = state.csvData;
     const selects = document.querySelectorAll('.mapping-row select');
     
@@ -231,7 +351,6 @@ function autoMapFields() {
         
         if (!fieldDef) return;
         
-        // Try to find matching header
         const normalizedAliases = fieldDef.aliases.map(a => a.toLowerCase().replace(/[_\s-]/g, ''));
         
         for (const header of headers) {
@@ -807,8 +926,8 @@ async function loadTestData() {
         elements.mappingSection.classList.remove('hidden');
         populateMappingDropdowns();
         
-        // Auto-map fields
-        autoMapFields();
+        // Auto-map fields with OpenAI
+        await autoMapFields();
         
     } catch (error) {
         console.error('Failed to load test data:', error);
