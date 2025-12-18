@@ -323,8 +323,8 @@ function renderDataTable() {
     `;
     elements.dataTableBody.innerHTML = '';
     
-    // Add header columns (show first 5 mapped fields or all headers if less)
-    const displayHeaders = headers.slice(0, 6);
+    // Add header columns (all columns from CSV in original order)
+    const displayHeaders = headers;
     displayHeaders.forEach(header => {
         const th = document.createElement('th');
         th.textContent = header;
