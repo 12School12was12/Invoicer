@@ -652,7 +652,7 @@ function highlightCurrentRow() {
 }
 
 // ===== Export =====
-async function generateAndAddPDF(zip, rowIndex, displayIndex) {
+async function generateAndAddPDF(zip, rowIndex, displayIndex, usedFilenames = {}) {
     const { jsPDF } = window.jspdf;
     
     // Render the invoice for this row
@@ -690,15 +690,54 @@ async function generateAndAddPDF(zip, rowIndex, displayIndex) {
     // Add image to PDF
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
     
-    // Get invoice number for filename
+    // Get recipient name for filename
     const row = state.csvData.rows[rowIndex];
+    const clientCompanyCol = state.mapping['client_company_name'];
+    const clientContactCol = state.mapping['client_contact_name'];
     const invoiceNumCol = state.mapping['invoice_number'];
-    const invoiceNum = invoiceNumCol ? (row[invoiceNumCol] || `invoice_${displayIndex}`) : `invoice_${displayIndex}`;
-    const safeFilename = invoiceNum.replace(/[^a-zA-Z0-9_-]/g, '_');
+    
+    // Try to get recipient name (prefer company name, fallback to contact name)
+    let recipientName = '';
+    if (clientCompanyCol && row[clientCompanyCol] && row[clientCompanyCol].trim()) {
+        recipientName = row[clientCompanyCol].trim();
+    } else if (clientContactCol && row[clientContactCol] && row[clientContactCol].trim()) {
+        recipientName = row[clientContactCol].trim();
+    }
+    
+    // Fallback to invoice number if no recipient name
+    if (!recipientName) {
+        if (invoiceNumCol && row[invoiceNumCol] && row[invoiceNumCol].trim()) {
+            recipientName = row[invoiceNumCol].trim();
+        } else {
+            recipientName = `invoice_${displayIndex}`;
+        }
+    }
+    
+    // Sanitize filename: remove special chars, limit length, replace spaces
+    let safeFilename = recipientName
+        .replace(/[^a-zA-Z0-9\s_-]/g, '') // Remove special chars except spaces, dashes, underscores
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .substring(0, 100); // Limit length to 100 chars
+    
+    // Ensure filename is not empty
+    if (!safeFilename) {
+        safeFilename = `invoice_${displayIndex}`;
+    }
+    
+    // Handle duplicate filenames by adding suffix
+    let finalFilename = safeFilename;
+    let counter = 1;
+    while (usedFilenames[finalFilename]) {
+        counter++;
+        const suffix = `_${counter}`;
+        const maxLength = 100 - suffix.length;
+        finalFilename = safeFilename.substring(0, maxLength) + suffix;
+    }
+    usedFilenames[finalFilename] = true;
     
     // Add PDF to zip
     const pdfBlob = pdf.output('blob');
-    zip.file(`${safeFilename}.pdf`, pdfBlob);
+    zip.file(`${finalFilename}.pdf`, pdfBlob);
     
     // Clean up canvas to free memory
     canvas.width = 0;
@@ -746,6 +785,7 @@ async function exportSelectedInvoices() {
                 elements.progressText.textContent = `Формирование архива ${zipIndex + 1} из ${numZips} (файлы ${startIdx + 1}-${endIdx})...`;
                 
                 const zip = new JSZip();
+                const usedFilenames = {}; // Track filenames to avoid duplicates
                 
                 for (let i = 0; i < batchIndices.length; i++) {
                     const rowIndex = batchIndices[i];
@@ -757,7 +797,7 @@ async function exportSelectedInvoices() {
                     elements.progressText.textContent = `Архив ${zipIndex + 1}/${numZips}: PDF ${globalIndex} из ${total}...`;
                     
                     try {
-                        await generateAndAddPDF(zip, rowIndex, rowIndex + 1);
+                        await generateAndAddPDF(zip, rowIndex, rowIndex + 1, usedFilenames);
                     } catch (itemError) {
                         console.error(`Error processing invoice ${globalIndex}:`, itemError);
                         continue;
@@ -846,6 +886,7 @@ async function exportSelectedInvoices() {
         } else {
             // Single ZIP for smaller batches
             const zip = new JSZip();
+            const usedFilenames = {}; // Track filenames to avoid duplicates
             
             for (let i = 0; i < selectedIndices.length; i++) {
                 const rowIndex = selectedIndices[i];
@@ -856,7 +897,7 @@ async function exportSelectedInvoices() {
                 elements.progressText.textContent = `Генерация PDF ${i + 1} из ${total}...`;
                 
                 try {
-                    await generateAndAddPDF(zip, rowIndex, i + 1);
+                    await generateAndAddPDF(zip, rowIndex, i + 1, usedFilenames);
                 } catch (itemError) {
                     console.error(`Error processing invoice ${i + 1}:`, itemError);
                     continue;
