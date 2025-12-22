@@ -52,7 +52,8 @@ const elements = {
     // Export Progress
     exportProgress: document.getElementById('export-progress'),
     progressFill: document.getElementById('progress-fill'),
-    progressText: document.getElementById('progress-text')
+    progressText: document.getElementById('progress-text'),
+    nextDownloadBtn: document.getElementById('next-download-btn')
 };
 
 // ===== Field Definitions =====
@@ -779,11 +780,50 @@ async function exportSelectedInvoices() {
                 zipBlobs.push({ blob: zipBlob, filename: zipFilename });
             }
             
-            // Step 2: Download all ZIPs sequentially
-            elements.progressText.textContent = `Скачивание ${numZips} архив${numZips > 1 ? 'ов' : 'а'}...`;
+            // Step 2: Download all ZIPs sequentially with user confirmation
+            elements.progressText.textContent = `Готово к скачиванию ${numZips} архив${numZips > 1 ? 'ов' : 'а'}. Начинаем...`;
+            
+            // Function to wait for user to click "next" button or auto-proceed after timeout
+            const waitForNextDownload = (index) => {
+                return new Promise((resolve) => {
+                    if (index === 0) {
+                        // First file - download immediately
+                        resolve();
+                        return;
+                    }
+                    
+                    // Show button and wait for click or timeout
+                    elements.nextDownloadBtn.classList.remove('hidden');
+                    elements.nextDownloadBtn.textContent = `Скачать архив ${index + 1} из ${zipBlobs.length}`;
+                    
+                    let resolved = false;
+                    const timeout = setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            elements.nextDownloadBtn.classList.add('hidden');
+                            resolve();
+                        }
+                    }, 5000); // Auto-proceed after 5 seconds
+                    
+                    const clickHandler = () => {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            elements.nextDownloadBtn.classList.add('hidden');
+                            elements.nextDownloadBtn.removeEventListener('click', clickHandler);
+                            resolve();
+                        }
+                    };
+                    
+                    elements.nextDownloadBtn.addEventListener('click', clickHandler);
+                });
+            };
             
             for (let i = 0; i < zipBlobs.length; i++) {
                 const { blob, filename } = zipBlobs[i];
+                
+                // Wait for user confirmation (or auto-proceed)
+                await waitForNextDownload(i);
                 
                 // Update progress (70% + 30% for downloads)
                 const downloadProgress = 70 + Math.round(((i + 1) / zipBlobs.length) * 30);
@@ -792,11 +832,14 @@ async function exportSelectedInvoices() {
                 
                 saveAs(blob, filename);
                 
-                // Delay between downloads to let browser process
+                // Small delay after triggering download
                 if (i < zipBlobs.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
+            
+            // Hide button after all downloads
+            elements.nextDownloadBtn.classList.add('hidden');
             
             elements.progressText.textContent = `Готово! Скачано ${numZips} архив${numZips > 1 ? 'ов' : ''}`;
             
@@ -851,9 +894,11 @@ async function exportSelectedInvoices() {
         const errorMsg = error.message || 'Неизвестная ошибка';
         alert('Ошибка при экспорте: ' + errorMsg);
         elements.exportProgress.classList.add('hidden');
+        elements.nextDownloadBtn.classList.add('hidden');
     } finally {
         state.isExporting = false;
         elements.exportBtn.disabled = false;
+        elements.nextDownloadBtn.classList.add('hidden');
         
         // Restore current row view
         renderInvoice(state.currentRowIndex);
