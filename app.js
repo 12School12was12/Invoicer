@@ -651,6 +651,59 @@ function highlightCurrentRow() {
 }
 
 // ===== Export =====
+async function generateAndAddPDF(zip, rowIndex, displayIndex) {
+    const { jsPDF } = window.jspdf;
+    
+    // Render the invoice for this row
+    renderInvoice(rowIndex);
+    
+    // Wait for render
+    await new Promise(resolve => setTimeout(resolve, 150));
+    
+    // Capture canvas as image
+    const canvas = await html2canvas(elements.invoiceCanvas, {
+        scale: 1.5, // Reduced scale to save memory
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        removeContainer: true
+    });
+    
+    // Create PDF (A4 size)
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+    
+    // Calculate dimensions to fit A4
+    const imgData = canvas.toDataURL('image/png', 0.9); // Compression to save memory
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    // Scale image to fit page width while maintaining aspect ratio
+    const canvasAspect = canvas.height / canvas.width;
+    const imgWidth = pdfWidth;
+    const imgHeight = pdfWidth * canvasAspect;
+    
+    // Add image to PDF
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
+    
+    // Get invoice number for filename
+    const row = state.csvData.rows[rowIndex];
+    const invoiceNumCol = state.mapping['invoice_number'];
+    const invoiceNum = invoiceNumCol ? (row[invoiceNumCol] || `invoice_${displayIndex}`) : `invoice_${displayIndex}`;
+    const safeFilename = invoiceNum.replace(/[^a-zA-Z0-9_-]/g, '_');
+    
+    // Add PDF to zip
+    const pdfBlob = pdf.output('blob');
+    zip.file(`${safeFilename}.pdf`, pdfBlob);
+    
+    // Clean up canvas to free memory
+    canvas.width = 0;
+    canvas.height = 0;
+}
+
 async function exportSelectedInvoices() {
     if (state.selectedRows.size === 0) {
         alert('Выберите хотя бы один инвойс для экспорта');
@@ -662,109 +715,100 @@ async function exportSelectedInvoices() {
     const selectedIndices = Array.from(state.selectedRows).sort((a, b) => a - b);
     const total = selectedIndices.length;
     
-    // Warn if too many files
-    if (total > 50) {
-        const proceed = confirm(
-            `Вы выбрали ${total} инвойсов. Экспорт большого количества файлов может занять время и потребовать много памяти.\n\n` +
-            `Рекомендуется экспортировать не более 50 файлов за раз.\n\n` +
-            `Продолжить?`
-        );
-        if (!proceed) return;
-    }
-    
     state.isExporting = true;
     
     // Show progress
     elements.exportProgress.classList.remove('hidden');
     elements.exportBtn.disabled = true;
     
-    const zip = new JSZip();
     const { jsPDF } = window.jspdf;
     
-    // Batch size to prevent memory issues
-    const BATCH_SIZE = 20;
+    // Split into multiple ZIPs if too many files (prevents memory issues)
+    const FILES_PER_ZIP = 30;
+    const needsMultipleZips = total > FILES_PER_ZIP;
     
     try {
-        for (let i = 0; i < selectedIndices.length; i++) {
-            const rowIndex = selectedIndices[i];
+        if (needsMultipleZips) {
+            // Export in multiple ZIP files
+            const numZips = Math.ceil(total / FILES_PER_ZIP);
+            const timestamp = new Date().toISOString().slice(0, 10);
             
-            // Update progress
-            const progress = Math.round(((i + 1) / total) * 100);
-            elements.progressFill.style.width = `${progress}%`;
-            elements.progressText.textContent = `Генерация PDF ${i + 1} из ${total}...`;
-            
-            try {
-                // Render the invoice for this row
-                renderInvoice(rowIndex);
+            for (let zipIndex = 0; zipIndex < numZips; zipIndex++) {
+                const startIdx = zipIndex * FILES_PER_ZIP;
+                const endIdx = Math.min(startIdx + FILES_PER_ZIP, total);
+                const batchIndices = selectedIndices.slice(startIdx, endIdx);
                 
-                // Wait for render
-                await new Promise(resolve => setTimeout(resolve, 150));
+                elements.progressText.textContent = `Создание архива ${zipIndex + 1} из ${numZips} (файлы ${startIdx + 1}-${endIdx})...`;
                 
-                // Capture canvas as image with lower scale for large batches
-                const scale = total > 30 ? 1.5 : 2;
-                const canvas = await html2canvas(elements.invoiceCanvas, {
-                    scale: scale,
-                    useCORS: true,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    removeContainer: true
-                });
+                const zip = new JSZip();
                 
-                // Create PDF (A4 size)
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
-                // Calculate dimensions to fit A4
-                const imgData = canvas.toDataURL('image/png', 0.92); // Slight compression
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                
-                // Scale image to fit page width while maintaining aspect ratio
-                const canvasAspect = canvas.height / canvas.width;
-                const imgWidth = pdfWidth;
-                const imgHeight = pdfWidth * canvasAspect;
-                
-                // Add image to PDF
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pdfHeight));
-                
-                // Get invoice number for filename
-                const row = state.csvData.rows[rowIndex];
-                const invoiceNumCol = state.mapping['invoice_number'];
-                const invoiceNum = invoiceNumCol ? (row[invoiceNumCol] || `invoice_${rowIndex + 1}`) : `invoice_${rowIndex + 1}`;
-                const safeFilename = invoiceNum.replace(/[^a-zA-Z0-9_-]/g, '_');
-                
-                // Add PDF to zip (use array buffer to reduce memory)
-                const pdfBlob = pdf.output('blob');
-                zip.file(`${safeFilename}.pdf`, pdfBlob);
-                
-                // Clean up canvas to free memory
-                canvas.width = 0;
-                canvas.height = 0;
-                
-                // Force garbage collection hint every batch
-                if ((i + 1) % BATCH_SIZE === 0) {
-                    elements.progressText.textContent = `Обработано ${i + 1} из ${total}, освобождение памяти...`;
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                for (let i = 0; i < batchIndices.length; i++) {
+                    const rowIndex = batchIndices[i];
+                    const globalIndex = startIdx + i + 1;
+                    
+                    // Update progress
+                    const progress = Math.round((globalIndex / total) * 100);
+                    elements.progressFill.style.width = `${progress}%`;
+                    elements.progressText.textContent = `Архив ${zipIndex + 1}/${numZips}: PDF ${globalIndex} из ${total}...`;
+                    
+                    try {
+                        await generateAndAddPDF(zip, rowIndex, rowIndex + 1);
+                    } catch (itemError) {
+                        console.error(`Error processing invoice ${globalIndex}:`, itemError);
+                        continue;
+                    }
                 }
                 
-            } catch (itemError) {
-                console.error(`Error processing invoice ${i + 1}:`, itemError);
-                // Continue with next item instead of failing completely
-                continue;
+                // Generate and download this ZIP
+                elements.progressText.textContent = `Создание архива ${zipIndex + 1} из ${numZips}...`;
+                
+                const zipBlob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                
+                const zipFilename = numZips > 1 
+                    ? `invoices_${timestamp}_part${zipIndex + 1}_of_${numZips}.zip`
+                    : `invoices_${timestamp}.zip`;
+                
+                saveAs(zipBlob, zipFilename);
+                
+                // Small delay between downloads
+                if (zipIndex < numZips - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
             }
-        }
-        
-        // Generate and download zip with streaming to reduce memory
-        elements.progressText.textContent = 'Создание архива...';
-        
-        try {
+            
+            elements.progressText.textContent = `Готово! Скачано ${numZips} архив${numZips > 1 ? 'ов' : ''}`;
+            
+        } else {
+            // Single ZIP for smaller batches
+            const zip = new JSZip();
+            
+            for (let i = 0; i < selectedIndices.length; i++) {
+                const rowIndex = selectedIndices[i];
+                
+                // Update progress
+                const progress = Math.round(((i + 1) / total) * 100);
+                elements.progressFill.style.width = `${progress}%`;
+                elements.progressText.textContent = `Генерация PDF ${i + 1} из ${total}...`;
+                
+                try {
+                    await generateAndAddPDF(zip, rowIndex, i + 1);
+                } catch (itemError) {
+                    console.error(`Error processing invoice ${i + 1}:`, itemError);
+                    continue;
+                }
+            }
+            
+            // Generate and download zip
+            elements.progressText.textContent = 'Создание архива...';
+            
             const zipBlob = await zip.generateAsync({ 
                 type: 'blob',
                 compression: 'DEFLATE',
-                compressionOptions: { level: 6 } // Balanced compression
+                compressionOptions: { level: 6 }
             }, (metadata) => {
                 if (metadata.percent) {
                     elements.progressFill.style.width = `${metadata.percent}%`;
@@ -772,24 +816,17 @@ async function exportSelectedInvoices() {
                 }
             });
             
-            // Download
             const timestamp = new Date().toISOString().slice(0, 10);
             saveAs(zipBlob, `invoices_${timestamp}.zip`);
             
             elements.progressText.textContent = 'Готово!';
-            
-            // Hide progress after delay
-            setTimeout(() => {
-                elements.exportProgress.classList.add('hidden');
-                elements.progressFill.style.width = '0%';
-            }, 2000);
-            
-        } catch (zipError) {
-            if (zipError.message && zipError.message.includes('allocation')) {
-                throw new Error('Недостаточно памяти для создания архива. Попробуйте экспортировать меньше файлов за раз (рекомендуется не более 30-50).');
-            }
-            throw zipError;
         }
+        
+        // Hide progress after delay
+        setTimeout(() => {
+            elements.exportProgress.classList.add('hidden');
+            elements.progressFill.style.width = '0%';
+        }, 2000);
         
     } catch (error) {
         console.error('Export error:', error);
