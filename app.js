@@ -729,16 +729,20 @@ async function exportSelectedInvoices() {
     
     try {
         if (needsMultipleZips) {
-            // Export in multiple ZIP files
+            // Export in multiple ZIP files - generate all first, then download
             const numZips = Math.ceil(total / FILES_PER_ZIP);
             const timestamp = new Date().toISOString().slice(0, 10);
+            const zipBlobs = []; // Store all ZIP blobs for batch download
+            
+            // Step 1: Generate all ZIP archives
+            elements.progressText.textContent = `Формирование ${numZips} архив${numZips > 1 ? 'ов' : 'а'}...`;
             
             for (let zipIndex = 0; zipIndex < numZips; zipIndex++) {
                 const startIdx = zipIndex * FILES_PER_ZIP;
                 const endIdx = Math.min(startIdx + FILES_PER_ZIP, total);
                 const batchIndices = selectedIndices.slice(startIdx, endIdx);
                 
-                elements.progressText.textContent = `Создание архива ${zipIndex + 1} из ${numZips} (файлы ${startIdx + 1}-${endIdx})...`;
+                elements.progressText.textContent = `Формирование архива ${zipIndex + 1} из ${numZips} (файлы ${startIdx + 1}-${endIdx})...`;
                 
                 const zip = new JSZip();
                 
@@ -746,9 +750,9 @@ async function exportSelectedInvoices() {
                     const rowIndex = batchIndices[i];
                     const globalIndex = startIdx + i + 1;
                     
-                    // Update progress
-                    const progress = Math.round((globalIndex / total) * 100);
-                    elements.progressFill.style.width = `${progress}%`;
+                    // Update progress (70% for generation, 30% for download)
+                    const generationProgress = Math.round((globalIndex / total) * 70);
+                    elements.progressFill.style.width = `${generationProgress}%`;
                     elements.progressText.textContent = `Архив ${zipIndex + 1}/${numZips}: PDF ${globalIndex} из ${total}...`;
                     
                     try {
@@ -759,7 +763,7 @@ async function exportSelectedInvoices() {
                     }
                 }
                 
-                // Generate and download this ZIP
+                // Generate ZIP blob
                 elements.progressText.textContent = `Создание архива ${zipIndex + 1} из ${numZips}...`;
                 
                 const zipBlob = await zip.generateAsync({ 
@@ -772,11 +776,25 @@ async function exportSelectedInvoices() {
                     ? `invoices_${timestamp}_part${zipIndex + 1}_of_${numZips}.zip`
                     : `invoices_${timestamp}.zip`;
                 
-                saveAs(zipBlob, zipFilename);
+                zipBlobs.push({ blob: zipBlob, filename: zipFilename });
+            }
+            
+            // Step 2: Download all ZIPs sequentially
+            elements.progressText.textContent = `Скачивание ${numZips} архив${numZips > 1 ? 'ов' : 'а'}...`;
+            
+            for (let i = 0; i < zipBlobs.length; i++) {
+                const { blob, filename } = zipBlobs[i];
                 
-                // Small delay between downloads
-                if (zipIndex < numZips - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                // Update progress (70% + 30% for downloads)
+                const downloadProgress = 70 + Math.round(((i + 1) / zipBlobs.length) * 30);
+                elements.progressFill.style.width = `${downloadProgress}%`;
+                elements.progressText.textContent = `Скачивание архива ${i + 1} из ${zipBlobs.length}...`;
+                
+                saveAs(blob, filename);
+                
+                // Delay between downloads to let browser process
+                if (i < zipBlobs.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
                 }
             }
             
