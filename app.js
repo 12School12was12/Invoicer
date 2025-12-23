@@ -131,63 +131,109 @@ function escapeRegex(string) {
 
 function parseCSV(text) {
     const delimiter = detectDelimiter(text);
-    const lines = text.split(/\r?\n/).filter(line => line.trim());
     
-    if (lines.length < 2) {
-        throw new Error('CSV должен содержать заголовок и хотя бы одну строку данных');
-    }
-    
-    const headers = parseCSVLine(lines[0], delimiter);
+    // Parse CSV properly handling multiline fields in quotes
     const rows = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i], delimiter);
-        if (values.length === headers.length) {
-            const row = {};
-            headers.forEach((header, index) => {
-                row[header] = values[index];
-            });
-            rows.push(row);
-        }
-    }
-    
-    return { headers, rows, delimiter };
-}
-
-function parseCSVLine(line, delimiter) {
-    const result = [];
-    let current = '';
+    let currentRow = [];
+    let currentField = '';
     let inQuotes = false;
+    let i = 0;
     
-    for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        const nextChar = line[i + 1];
+    while (i < text.length) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+        const prevChar = i > 0 ? text[i - 1] : '';
         
         if (inQuotes) {
             if (char === '"') {
                 if (nextChar === '"') {
-                    current += '"';
+                    // Escaped quote
+                    currentField += '"';
+                    i += 2;
+                } else if (nextChar === delimiter || nextChar === '\n' || nextChar === '\r' || i === text.length - 1) {
+                    // End of quoted field
+                    inQuotes = false;
                     i++;
                 } else {
-                    inQuotes = false;
+                    // Quote in the middle of field (shouldn't happen in valid CSV, but handle it)
+                    currentField += char;
+                    i++;
+                }
+            } else if (char === '\n' || char === '\r') {
+                // Newline inside quoted field - keep it as part of the field
+                if (char === '\r' && nextChar === '\n') {
+                    currentField += '\n';
+                    i += 2;
+                } else {
+                    currentField += '\n';
+                    i++;
                 }
             } else {
-                current += char;
+                currentField += char;
+                i++;
             }
         } else {
             if (char === '"') {
                 inQuotes = true;
+                i++;
             } else if (char === delimiter) {
-                result.push(current.trim());
-                current = '';
+                currentRow.push(currentField.trim());
+                currentField = '';
+                i++;
+            } else if (char === '\n' || (char === '\r' && nextChar !== '\n')) {
+                // End of row
+                currentRow.push(currentField.trim());
+                if (currentRow.length > 0 && currentRow.some(field => field.length > 0)) {
+                    rows.push(currentRow);
+                }
+                currentRow = [];
+                currentField = '';
+                if (char === '\r' && nextChar === '\n') {
+                    i += 2;
+                } else {
+                    i++;
+                }
+            } else if (char === '\r' && nextChar === '\n') {
+                // Skip \r before \n (will be handled by \n)
+                i++;
             } else {
-                current += char;
+                currentField += char;
+                i++;
             }
         }
     }
     
-    result.push(current.trim());
-    return result;
+    // Add last field and row if exists
+    if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField);
+        // Only add row if it has at least one non-empty field
+        if (currentRow.some(field => field && field.trim().length > 0)) {
+            rows.push(currentRow);
+        }
+    }
+    
+    if (rows.length < 2) {
+        throw new Error('CSV должен содержать заголовок и хотя бы одну строку данных');
+    }
+    
+    const headers = rows[0];
+    const dataRows = [];
+    
+    for (let i = 1; i < rows.length; i++) {
+        const rowValues = rows[i];
+        // Skip completely empty rows
+        if (rowValues.length === 0 || !rowValues.some(field => field && field.trim().length > 0)) {
+            continue;
+        }
+        
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = rowValues[index] || '';
+        });
+        dataRows.push(row);
+    }
+    
+    return { headers, rows: dataRows, delimiter };
 }
 
 // ===== Mapping =====
