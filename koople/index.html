@@ -196,9 +196,9 @@
                                     stroke-dasharray="263.89" stroke-dashoffset="52.78"
                                     stroke-linecap="round" transform="rotate(-90 50 50)" class="score-circle"/>
                             </svg>
-                            <span class="score-value">78</span>
+                            <span class="score-value" id="health-score-value">78</span>
                         </div>
-                        <div class="score-details">
+                        <div class="score-details" id="score-details">
                             <div class="score-detail"><span class="dot dot-green"></span> Коммуникация: 85%</div>
                             <div class="score-detail"><span class="dot dot-yellow"></span> Быт: 62%</div>
                             <div class="score-detail"><span class="dot dot-green"></span> Близость: 88%</div>
@@ -388,7 +388,7 @@
                             <span>&#x1F4AA;</span>
                             <h3>Сильные стороны</h3>
                         </div>
-                        <ul class="insight-list">
+                        <ul class="insight-list" id="strengths-list">
                             <li class="positive">Эмоциональная близость</li>
                             <li class="positive">Общие ценности и цели</li>
                             <li class="positive">Физическая привязанность</li>
@@ -400,7 +400,7 @@
                             <span>&#x1F331;</span>
                             <h3>Зоны роста</h3>
                         </div>
-                        <ul class="insight-list">
+                        <ul class="insight-list" id="growth-list">
                             <li class="growth">Распределение бытовых обязанностей</li>
                             <li class="growth">Обсуждение финансовых планов</li>
                             <li class="growth">Личное пространство</li>
@@ -510,7 +510,7 @@
                     <div class="profile-avatar-large">А</div>
                     <h2 id="profile-name">Аня</h2>
                     <p class="profile-partner">в паре с <strong id="profile-partner-name">Миша</strong></p>
-                    <div class="profile-stats">
+                    <div class="profile-stats" id="profile-stats">
                         <div class="stat">
                             <span class="stat-value">23</span>
                             <span class="stat-label">дня вместе</span>
@@ -536,17 +536,17 @@
                         <span>Пригласить партнёра</span>
                         <span class="arrow">&#8250;</span>
                     </button>
-                    <button class="settings-item">
+                    <button class="settings-item" onclick="app.showNotifications()">
                         <span>&#x1F514;</span>
                         <span>Уведомления</span>
                         <span class="arrow">&#8250;</span>
                     </button>
-                    <button class="settings-item">
+                    <button class="settings-item" onclick="app.showPrivacy()">
                         <span>&#x1F512;</span>
                         <span>Приватность</span>
                         <span class="arrow">&#8250;</span>
                     </button>
-                    <button class="settings-item">
+                    <button class="settings-item" onclick="app.showHelp()">
                         <span>&#x2753;</span>
                         <span>Помощь и поддержка</span>
                         <span class="arrow">&#8250;</span>
