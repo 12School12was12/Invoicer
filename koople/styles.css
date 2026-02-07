@@ -1832,6 +1832,122 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
+/* ── Settings Toggles (Modal) ──────────────────────────── */
+.settings-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 15px;
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.toggle-pill {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+    background: var(--border);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+
+.toggle-pill::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.3s;
+}
+
+.toggle-pill.active {
+    background: var(--primary);
+}
+
+.toggle-pill.active::after {
+    transform: translateX(20px);
+}
+
+/* ── Privacy Info (Modal) ──────────────────────────────── */
+.privacy-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.privacy-item {
+    padding: 14px;
+    background: var(--bg);
+    border-radius: var(--radius-md);
+}
+
+.privacy-item strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.privacy-item p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* ── Help Steps (Modal) ────────────────────────────────── */
+.help-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.help-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.help-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.help-step strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.help-step p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (min-width: 431px) {
     body {
