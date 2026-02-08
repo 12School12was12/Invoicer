@@ -38,6 +38,12 @@ const app = {
 
     // ── Initialization ────────────────────────────────────
     init() {
+        // Restore saved language before anything else
+        try {
+            const savedLang = localStorage.getItem('koople_lang');
+            if (savedLang && typeof setLang === 'function') setLang(savedLang);
+        } catch (e) { /* storage unavailable */ }
+
         const saved = localStorage.getItem('koople_state');
         if (saved) {
             try {
@@ -60,7 +66,10 @@ const app = {
             } catch (e) { /* ignore corrupt data */ }
         }
         this.initIntroSlides();
-        this.navigate('intro');
+        this.applyTranslations();
+        // navigate('intro') would return early since intro is already active from HTML,
+        // so we just set the state directly
+        this.state.currentScreen = 'intro';
     },
 
     save() {
@@ -94,9 +103,9 @@ const app = {
         // Static text elements by ID mapping
         const map = {
             'welcome-tagline': 'app_tagline',
-            'welcome-feature1': this.t('intro_1_title'),
-            'welcome-feature2': this.t('intro_2_title'),
-            'welcome-feature3': this.t('intro_3_title'),
+            'welcome-feature1': 'intro_1_title',
+            'welcome-feature2': 'intro_2_title',
+            'welcome-feature3': 'intro_3_title',
             'btn-start': 'btn_start',
             'btn-login': 'btn_have_account',
             'login-title': 'login_title',
@@ -304,6 +313,14 @@ const app = {
         this.state.user.livingTogether = document.getElementById('setup-living').value;
         this.state.user.email = document.getElementById('setup-email').value;
         this.state.onboarding.currentIndex = 0;
+        this.save();
+        this.navigate('onboarding');
+    },
+
+    retakeQuestionnaire() {
+        this.state.onboarding.currentIndex = 0;
+        this.state.onboarding.answers = {};
+        this.state.onboarding.completed = false;
         this.save();
         this.navigate('onboarding');
     },
