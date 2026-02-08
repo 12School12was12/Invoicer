@@ -972,35 +972,33 @@ const app = {
         this.state.chat.isTyping = true;
         this.renderChat();
 
-        // Try real AI first, fall back to pattern matching
-        if (typeof AIService !== 'undefined' && AIService.isConfigured()) {
-            const analysis = this.state.analysis || this.getDefaultAnalysis();
-                const userContext = {
-                    language: (typeof getLang === 'function') ? getLang() : 'en',
-                    name: this.state.user.name,
-                    partnerName: this.state.user.partnerName,
-                    duration: this.state.user.duration,
-                    livingTogether: this.state.user.livingTogether,
-                    harmonyScore: analysis.harmony,
-                    growthAreas: analysis.growth ? analysis.growth.join(', ') : '',
-                    strengths: analysis.strengths ? analysis.strengths.join(', ') : '',
-                    questionnaireSummary: (typeof AIService !== 'undefined' && AIService.buildQuestionnaireSummary)
-                        ? AIService.buildQuestionnaireSummary(this.state.onboarding.answers, analysis.catScores)
-                        : ''
-                };
-            const result = await AIService.chat(this.state.chat.messages.slice(0, -1).concat([{role:'user', text}]), userContext);
-            this.state.chat.isTyping = false;
-            this.state.chat.messages.push({ role: 'assistant', text: result.text, time: this.getCurrentTime() });
-            if (result.challenge) {
-                this.state.challenges.push(result.challenge);
-                this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + result.challenge.title);
-                    this.showNotification('\uD83C\uDFAF ' + result.challenge.title);
-            }
-            this.renderChat();
-            this.save();
-        } else {
-            // Fallback: pattern-based responses
-            const delay = 1200 + Math.random() * 1500;
+        const analysis = this.state.analysis || this.getDefaultAnalysis();
+        const userContext = {
+            language: (typeof getLang === 'function') ? getLang() : 'en',
+            name: this.state.user.name,
+            partnerName: this.state.user.partnerName,
+            duration: this.state.user.duration,
+            livingTogether: this.state.user.livingTogether,
+            harmonyScore: analysis.harmony,
+            growthAreas: analysis.growth ? analysis.growth.join(', ') : '',
+            strengths: analysis.strengths ? analysis.strengths.join(', ') : '',
+            questionnaireSummary: (typeof AIService !== 'undefined' && AIService.buildQuestionnaireSummary)
+                ? AIService.buildQuestionnaireSummary(this.state.onboarding.answers, analysis.catScores)
+                : ''
+        };
+
+        // Try AI service (backend proxy or direct API)
+        let result = null;
+        if (typeof AIService !== 'undefined') {
+            result = await AIService.chat(
+                this.state.chat.messages.slice(0, -1).concat([{ role: 'user', text }]),
+                userContext
+            );
+        }
+
+        // If AI returned null (not configured) or no result, use fallback
+        if (!result) {
+            const delay = 800 + Math.random() * 1000;
             setTimeout(() => {
                 this.state.chat.isTyping = false;
                 const response = this.generateAIResponse(text);
@@ -1012,7 +1010,18 @@ const app = {
                 this.renderChat();
                 this.save();
             }, delay);
+            return;
         }
+
+        this.state.chat.isTyping = false;
+        this.state.chat.messages.push({ role: 'assistant', text: result.text, time: this.getCurrentTime() });
+        if (result.challenge) {
+            this.state.challenges.push(result.challenge);
+            this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + result.challenge.title);
+            this.showNotification('\uD83C\uDFAF ' + result.challenge.title);
+        }
+        this.renderChat();
+        this.save();
     },
 
     sendSuggestion(btn) {
@@ -1020,57 +1029,101 @@ const app = {
         this.sendMessage();
     },
 
+    // ── Translated fallback response (when no AI backend available) ──
+    _fbText(key, pn) {
+        return this.t(key).replace(/\{partner\}/g, pn);
+    },
+
     generateAIResponse(userMessage) {
         const lower = userMessage.toLowerCase();
-        const pn = this.state.user.partnerName || 'partner';
-        let challenge = null;
+        const pn = this.state.user.partnerName || this.t('setup_partner_label');
 
-        if (/bathroom|hair|clean|ванн|волос|чистот/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Clean Bathroom', 'After each use: remove hair, wipe sink, hang towel.', 'household', '\u2728', 7, 'partner');
-            return { text: this.t('chat_welcome').includes('Привет') ?
-                'Понимаю — волосы в ванной это классика микроконфликтов. Я создал челлендж «Clean Bathroom» для ' + pn + '.' :
-                'I understand — bathroom cleanliness is a classic micro-conflict. I\'ve created a "Clean Bathroom" challenge for ' + pn + '.', challenge };
+        // Bathroom / cleaning
+        if (/bathroom|hair|clean|ванн|волос|чистот|мыть|убира/i.test(lower)) {
+            return {
+                text: this._fbText('fb_bathroom', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_clean_bathroom'), this.t('fb_ch_clean_bathroom_desc'), 'household', '\u2728', 7, 'partner')
+            };
         }
-
-        if (/dish|dirty|plate|посуд|грязн/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Clean Sink Rule', 'Wash dishes right after meals.', 'household', '\uD83E\uDDFD', 5, 'partner');
-            return { text: 'I\'ve prepared a "Clean Sink Rule" challenge for ' + pn + '. Small habits, big impact!', challenge };
+        // Dishes
+        if (/dish|dirty|plate|посуд|грязн|тарелк/i.test(lower)) {
+            return {
+                text: this._fbText('fb_dishes', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_clean_sink'), this.t('fb_ch_clean_sink_desc'), 'household', '\uD83E\uDDFD', 5, 'partner')
+            };
         }
-
-        if (/phone|screen|gadget|телефон|экран|гаджет/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Screen-Free Evenings', 'Phones away from 8-9pm. Talk, play, or just be together.', 'quality_time', '\uD83D\uDCF5', 5, 'both');
-            return { text: 'I\'ve created a "Screen-Free Evenings" challenge for both of you. One hour without phones each evening.', challenge };
+        // Phone / screen time
+        if (/phone|screen|gadget|телефон|экран|гаджет|смартфон/i.test(lower)) {
+            return {
+                text: this._fbText('fb_phone', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_screen_free'), this.t('fb_ch_screen_free_desc'), 'quality_time', '\uD83D\uDCF5', 5, 'both')
+            };
         }
-
-        if (/ignor|notice|attention|не.*заме|игнор|невидим/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Daily Check-in', 'Ask your partner "How are you feeling today?" and listen without advice.', 'emotional', '\uD83D\uDC96', 7, 'partner');
-            return { text: 'Feeling unseen is painful. I\'ve created a "Daily Check-in" challenge for ' + pn + ' to build a habit of attentiveness.', challenge };
+        // Feeling ignored
+        if (/ignor|notice|attention|не.*заме|игнор|невидим|не слуш/i.test(lower)) {
+            return {
+                text: this._fbText('fb_ignore', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_daily_checkin'), this.t('fb_ch_daily_checkin_desc'), 'emotional', '\uD83D\uDC96', 7, 'partner')
+            };
         }
-
-        if (/boring|routine|monoton|скуч|однообраз|рутин/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Surprise Week', 'Every 2 days — a little surprise: unusual dinner, a note, unexpected walk.', 'quality_time', '\uD83C\uDF39', 3, 'both');
-            return { text: 'I\'ve prepared a "Surprise Week" for both of you — 3 little surprises this week to break the routine.', challenge };
+        // Boredom / routine
+        if (/boring|routine|monoton|скуч|однообраз|рутин|надоел/i.test(lower)) {
+            return {
+                text: this._fbText('fb_boring', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_surprise_week'), this.t('fb_ch_surprise_week_desc'), 'quality_time', '\uD83C\uDF39', 3, 'both')
+            };
         }
-
-        if (/money|financ|budget|spend|денег|деньги|финанс|бюджет/i.test(lower)) {
-            challenge = this.createChallengeFromChat('Finance Evening', 'A calm conversation about finances. Rules: no blame, focus on shared goals.', 'finances', '\uD83D\uDCB0', 1, 'both');
-            return { text: 'Finances are one of the hardest topics for couples. I\'ve created a structured "Finance Evening" challenge.', challenge };
+        // Money / finances
+        if (/money|financ|budget|spend|денег|деньги|финанс|бюджет|трат/i.test(lower)) {
+            return {
+                text: this._fbText('fb_money', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_finance_evening'), this.t('fb_ch_finance_evening_desc'), 'finances', '\uD83D\uDCB0', 1, 'both')
+            };
         }
-
-        if (/fight|conflict|argue|yell|ссор|конфликт|ругаемся|крич/i.test(lower)) {
-            return { text: 'Conflicts are inevitable in relationships, but it\'s HOW you handle them that matters.\n\nTell me more: how do your conflicts usually start? Who initiates, and how do they end?', challenge: null };
+        // Food / cooking
+        if (/food|cook|eat|meal|recipe|diet|еда|готов|куша|блюд|рецепт|продукт|кухн|сельдер|вкус/i.test(lower)) {
+            return {
+                text: this._fbText('fb_food', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_cooking_together'), this.t('fb_ch_cooking_together_desc'), 'household', '\uD83C\uDF73', 3, 'both')
+            };
         }
-
+        // Hard to talk about / don't know how to say
+        if (/don'?t know how|hard to (say|tell|talk)|can'?t (say|tell)|не знаю как сказ|сложно сказ|трудно говор|не могу сказ|боюсь сказ/i.test(lower)) {
+            return {
+                text: this._fbText('fb_talk_hard', pn),
+                challenge: null
+            };
+        }
+        // Conflict / fighting
+        if (/fight|conflict|argue|yell|ссор|конфликт|ругаемся|крич|скандал/i.test(lower)) {
+            return { text: this._fbText('fb_conflict', pn), challenge: null };
+        }
+        // Intimacy / sex
+        if (/sex|intima|близост|секс|интим|постел|нежност/i.test(lower)) {
+            return {
+                text: this._fbText('fb_sex', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_reconnect'), this.t('fb_ch_reconnect_desc'), 'intimacy', '\uD83D\uDC95', 7, 'both')
+            };
+        }
+        // Jealousy / trust
+        if (/jealous|trust|suspicious|ревн|довер|подозр|измен/i.test(lower)) {
+            return {
+                text: this._fbText('fb_jealousy', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_trust_building'), this.t('fb_ch_trust_building_desc'), 'emotional', '\uD83D\uDD12', 7, 'both')
+            };
+        }
+        // Thank you / gratitude
         if (/thank|grateful|appreciate|спасибо|благодар|ценю/i.test(lower)) {
-            return { text: 'That\'s wonderful! Gratitude is a powerful relationship tool. Would you like to send ' + pn + ' a warm notification?', challenge: null };
+            return { text: this._fbText('fb_thanks', pn), challenge: null };
         }
 
+        // Default response
+        let txt = this._fbText('fb_default', pn);
         const analysis = this.state.analysis;
-        let extra = '';
-        if (analysis && analysis.growth.length > 0) {
-            extra = '\n\nBy the way, based on your questionnaire I see growth areas: ' + analysis.growth.join(', ') + '. Want to discuss any of these?';
+        if (analysis && analysis.growth && analysis.growth.length > 0) {
+            txt += this.t('fb_default_extra').replace('{areas}', analysis.growth.join(', '));
         }
-        return { text: 'Thank you for sharing. I can:\n\n1. \uD83D\uDCAC Discuss the situation in detail\n2. \uD83C\uDFAF Create a gentle challenge for ' + pn + '\n3. \uD83D\uDCA1 Give a recommendation for both of you\n4. \u2764\uFE0F Send ' + pn + ' something nice\n\nWhat would you prefer?' + extra, challenge: null };
+        return { text: txt, challenge: null };
     },
 
     createChallengeFromChat(title, desc, category, icon, total, assignedTo) {
@@ -1231,13 +1284,24 @@ const app = {
     },
 
     showAISettings() {
-        const configured = (typeof AIService !== 'undefined') && AIService.isConfigured();
-        const config = configured ? AIService.getConfig() : { provider: 'openai', hasKey: false };
+        const config = (typeof AIService !== 'undefined') ? AIService.getConfig() : { mode: 'fallback' };
+        let statusHtml;
+        if (config.mode === 'backend') {
+            statusHtml = '<div class="ai-status connected">\u2705 ' + this.t('ai_connected') + '</div>';
+        } else if (config.mode === 'direct') {
+            statusHtml = '<div class="ai-status connected">\u2705 ' + this.t('ai_connected') + ' (' + config.provider + ')</div>';
+        } else {
+            statusHtml = '<div class="ai-status demo">\uD83E\uDD16 ' + this.t('ai_demo_mode') + '</div>';
+        }
+        // Show simple status for regular users; dev form hidden behind tap
         this.showModal(`
             <h2>${this.t('ai_settings_title')}</h2>
             <p class="modal-subtitle">${this.t('ai_settings_desc')}</p>
-            ${configured ? '<div class="ai-status connected">\u2705 ' + this.t('ai_connected') + ' (' + config.provider + ')</div>' : '<div class="ai-status">\uD83D\uDCA4 ' + this.t('ai_demo_mode') + '</div>'}
-            <div class="ai-config-form">
+            ${statusHtml}
+            <div id="ai-dev-toggle" style="margin-top:16px;text-align:center">
+                <button class="btn btn-ghost btn-small" onclick="document.getElementById('ai-dev-form').style.display='block';this.style.display='none'">${this.t('ai_dev_mode') || 'Developer mode'}</button>
+            </div>
+            <div id="ai-dev-form" style="display:none" class="ai-config-form">
                 <div class="input-group">
                     <label>${this.t('ai_provider_label')}</label>
                     <select id="ai-provider">
@@ -1250,7 +1314,7 @@ const app = {
                     <input type="password" id="ai-api-key" placeholder="${this.t('ai_api_key_placeholder')}" value="">
                 </div>
                 <button class="btn btn-primary btn-large" onclick="app.connectAI()">${this.t('btn_connect_ai')}</button>
-                ${configured ? '<button class="btn btn-ghost" style="margin-top:8px;color:#D48A8A" onclick="app.disconnectAI()">' + this.t('ai_disconnect') + '</button>' : ''}
+                ${config.hasKey ? '<button class="btn btn-ghost" style="margin-top:8px;color:#D48A8A" onclick="app.disconnectAI()">' + this.t('ai_disconnect') + '</button>' : ''}
             </div>
         `);
     },
