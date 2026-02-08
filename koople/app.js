@@ -43,6 +43,16 @@ const app = {
             try {
                 const parsed = JSON.parse(saved);
                 this.state = Object.assign(this.state, parsed);
+                // Migrate: clear old-format data (hardcoded Russian text, fake activity)
+                if (this.state.activity && this.state.activity.length > 0 &&
+                    this.state.activity.some(a => a.text && /[а-яА-ЯёЁ]/.test(a.text) && /Миша|выполнил|день \d/.test(a.text))) {
+                    this.state.activity = [];
+                }
+                // Migrate old challenges that have title but no titleKey (old Russian-only format)
+                if (this.state.challenges && this.state.challenges.length > 0 &&
+                    this.state.challenges[0].title && !this.state.challenges[0].titleKey) {
+                    this.state.challenges = [...DEMO_CHALLENGES];
+                }
                 if (this.state.user.name && this.state.onboarding.completed) {
                     this.navigate('dashboard');
                     return;
@@ -65,6 +75,12 @@ const app = {
     },
 
     // ── i18n helpers ─────────────────────────────────────
+    // Resolve: if object has a key-based field, translate it; else use raw text
+    ct(obj, field) {
+        if (obj[field + 'Key']) return this.t(obj[field + 'Key']);
+        return obj[field] || '';
+    },
+
     t(key) {
         return (typeof t === 'function') ? t(key) : key;
     },
@@ -621,17 +637,17 @@ const app = {
 
         const loveLang = a.emo_love_language;
         const loveChallenges = {
-            words: { title: 'Compliment Week', desc: 'Give your partner one sincere compliment every day', icon: '\uD83D\uDCAC' },
-            touch: { title: 'Hug Week', desc: 'Hug your partner at least 3 times a day', icon: '\uD83E\uDEC2' },
-            time: { title: 'Evenings Together', desc: '20 minutes each evening just for you two — no phones', icon: '\u23F0' },
-            gifts: { title: 'Surprise Week', desc: 'A small token of attention every day: a note, coffee in bed, a flower', icon: '\uD83C\uDF81' },
-            service: { title: 'Care Week', desc: 'Do one thing for your partner every day: cooking, cleaning, an errand', icon: '\uD83D\uDCAA' }
+            words: { titleKey: 'ch_compliment_week', descKey: 'ch_compliment_week_desc', icon: '\uD83D\uDCAC' },
+            touch: { titleKey: 'ch_hug_week', descKey: 'ch_hug_week_desc', icon: '\uD83E\uDEC2' },
+            time: { titleKey: 'ch_evenings_together', descKey: 'ch_evenings_together_desc', icon: '\u23F0' },
+            gifts: { titleKey: 'ch_surprise_week', descKey: 'ch_surprise_week_desc', icon: '\uD83C\uDF81' },
+            service: { titleKey: 'ch_care_week', descKey: 'ch_care_week_desc', icon: '\uD83D\uDCAA' }
         };
         if (loveLang && loveChallenges[loveLang]) {
             const lc = loveChallenges[loveLang];
             challenges.push({
-                id: 'ch' + id++, title: lc.title, description: lc.desc,
-                category: 'emotional', icon: lc.icon, duration: '7 days',
+                id: 'ch' + id++, titleKey: lc.titleKey, descKey: lc.descKey,
+                category: 'emotional', icon: lc.icon, durationKey: 'ch_duration_7days',
                 difficulty: 'easy', progress: 0, total: 7, status: 'active', assignedTo: 'both'
             });
         }
@@ -639,31 +655,29 @@ const app = {
         const annoyances = a.house_annoy || [];
         if (annoyances.includes('bathroom') || annoyances.includes('mess')) {
             challenges.push({
-                id: 'ch' + id++, title: 'Clean Zone', description: 'Keep shared areas clean: bathroom, kitchen. Always tidy after yourself.',
-                category: 'household', icon: '\u2728', duration: '7 days',
+                id: 'ch' + id++, titleKey: 'ch_clean_zone', descKey: 'ch_clean_zone_desc',
+                category: 'household', icon: '\u2728', durationKey: 'ch_duration_7days',
                 difficulty: 'easy', progress: 0, total: 7, status: 'active', assignedTo: 'partner'
             });
         }
         if (annoyances.includes('phone')) {
             challenges.push({
-                id: 'ch' + id++, title: 'Screen-Free Evening', description: 'Spend an evening together without phones.',
-                category: 'quality_time', icon: '\uD83D\uDCF5', duration: '1 evening',
+                id: 'ch' + id++, titleKey: 'ch_screen_free', descKey: 'ch_screen_free_desc',
+                category: 'quality_time', icon: '\uD83D\uDCF5', durationKey: 'ch_duration_1evening',
                 difficulty: 'medium', progress: 0, total: 1, status: 'active', assignedTo: 'both'
             });
         }
 
         challenges.push({
-            id: 'ch' + id++, title: 'Bedtime Gratitude',
-            description: 'Before bed, tell your partner 3 things you are grateful for today.',
-            category: 'appreciation', icon: '\uD83C\uDF19', duration: '5 days',
+            id: 'ch' + id++, titleKey: 'ch_bedtime_gratitude', descKey: 'ch_bedtime_gratitude_desc',
+            category: 'appreciation', icon: '\uD83C\uDF19', durationKey: 'ch_duration_5days',
             difficulty: 'easy', progress: 0, total: 5, status: 'suggested', assignedTo: 'both'
         });
 
         if (['sometimes', 'often', 'constant'].includes(a.fin_tension)) {
             challenges.push({
-                id: 'ch' + id++, title: 'Finance Evening',
-                description: 'Have a calm conversation about finances: discuss monthly expenses, plans, and dreams.',
-                category: 'finances', icon: '\uD83D\uDCB0', duration: 'One-time',
+                id: 'ch' + id++, titleKey: 'ch_finance_evening', descKey: 'ch_finance_evening_desc',
+                category: 'finances', icon: '\uD83D\uDCB0', durationKey: 'ch_duration_onetime',
                 difficulty: 'hard', progress: 0, total: 1, status: 'suggested', assignedTo: 'both'
             });
         }
@@ -705,7 +719,7 @@ const app = {
             const cats = analysis.catScores;
             const focusAreas = ['communication', 'household', 'emotional', 'quality_time', 'intimacy', 'finances'];
             const lowestCat = focusAreas.sort((a, b) => (cats[a] || 70) - (cats[b] || 70))[0];
-            greetingSub.textContent = this.t('dashboard_subtitle').replace('strengthening your bond', this.t('cat_' + lowestCat));
+            greetingSub.textContent = this.t('dashboard_subtitle').split(':')[0] + ': ' + this.t('cat_' + lowestCat);
         }
 
         // Health score
@@ -745,7 +759,7 @@ const app = {
                 <div class="challenge-card-mini" onclick="app.showChallengeDetail('${ch.id}')">
                     <div class="challenge-mini-icon">${ch.icon}</div>
                     <div class="challenge-mini-info">
-                        <h4>${ch.title}</h4>
+                        <h4>${this.ct(ch, 'title')}</h4>
                         <div class="challenge-mini-progress">
                             <div class="mini-progress-bar">
                                 <div class="mini-progress-fill" style="width:${(ch.progress/ch.total)*100}%"></div>
@@ -805,17 +819,20 @@ const app = {
             const pct = (ch.progress / ch.total) * 100;
             const diff = { easy: '\uD83D\uDFE2 ' + this.t('diff_easy'), medium: '\uD83D\uDFE1 ' + this.t('diff_medium'), hard: '\uD83D\uDFE0 ' + this.t('diff_hard') }[ch.difficulty];
             const assigned = { both: this.t('assigned_both'), user: this.t('assigned_user'), partner: this.t('assigned_partner_prefix') + ' ' + partnerName }[ch.assignedTo];
+            const title = this.ct(ch, 'title');
+            const desc = this.ct(ch, 'desc') || this.ct(ch, 'description');
+            const dur = this.ct(ch, 'duration');
 
             return `
                 <div class="challenge-card" onclick="app.showChallengeDetail('${ch.id}')">
                     <div class="challenge-card-header">
                         <span class="challenge-icon-large">${ch.icon}</span>
                         <div>
-                            <h3>${ch.title}</h3>
-                            <div class="challenge-meta"><span>${diff}</span><span>\u00B7</span><span>${ch.duration}</span><span>\u00B7</span><span>${assigned}</span></div>
+                            <h3>${title}</h3>
+                            <div class="challenge-meta"><span>${diff}</span><span>\u00B7</span><span>${dur}</span><span>\u00B7</span><span>${assigned}</span></div>
                         </div>
                     </div>
-                    <p class="challenge-desc">${ch.description}</p>
+                    <p class="challenge-desc">${desc}</p>
                     ${ch.status !== 'suggested' ? `
                         <div class="challenge-progress">
                             <div class="progress-bar"><div class="progress-fill ${ch.status === 'completed' ? 'complete' : ''}" style="width:${pct}%"></div></div>
@@ -832,13 +849,16 @@ const app = {
         const ch = this.state.challenges.find(c => c.id === id);
         if (!ch) return;
         const pct = (ch.progress / ch.total) * 100;
+        const title = this.ct(ch, 'title');
+        const desc = this.ct(ch, 'desc') || this.ct(ch, 'description');
+        const dur = this.ct(ch, 'duration');
         this.showModal(`
             <div class="challenge-detail">
                 <div class="challenge-detail-icon">${ch.icon}</div>
-                <h2>${ch.title}</h2>
-                <p>${ch.description}</p>
+                <h2>${title}</h2>
+                <p>${desc}</p>
                 <div class="challenge-detail-meta">
-                    <div class="meta-item"><span class="meta-label">${this.t('duration_label')}</span><span class="meta-value">${ch.duration}</span></div>
+                    <div class="meta-item"><span class="meta-label">${this.t('duration_label')}</span><span class="meta-value">${dur}</span></div>
                     <div class="meta-item"><span class="meta-label">${this.t('progress_label')}</span><span class="meta-value">${ch.progress}/${ch.total}</span></div>
                 </div>
                 <div class="challenge-progress" style="margin-top:16px">
@@ -860,8 +880,8 @@ const app = {
                 ch.progress >= ch.total ? 'challenge_complete' : 'challenge_progress',
                 ch.progress >= ch.total ? '\uD83C\uDFC6' : '\u2705',
                 ch.progress >= ch.total
-                    ? '\uD83C\uDFC6 ' + ch.title + ' — ' + this.t('challenge_done')
-                    : '\u2705 ' + ch.title + ' (' + ch.progress + '/' + ch.total + ')'
+                    ? '\uD83C\uDFC6 ' + this.ct(ch, 'title') + ' — ' + this.t('challenge_done')
+                    : '\u2705 ' + this.ct(ch, 'title') + ' (' + ch.progress + '/' + ch.total + ')'
             );
             this.save();
         }
@@ -874,7 +894,7 @@ const app = {
         const ch = this.state.challenges.find(c => c.id === id);
         if (ch) {
             ch.status = 'active';
-            this.addActivity('new_challenge', '\uD83C\uDF1F', '\uD83C\uDF1F ' + this.t('btn_accept') + ': ' + ch.title);
+            this.addActivity('new_challenge', '\uD83C\uDF1F', '\uD83C\uDF1F ' + this.t('btn_accept') + ': ' + this.ct(ch, 'title'));
             this.save();
         }
         this.closeModal();
@@ -1078,7 +1098,7 @@ const app = {
         const recs = analysis.recommendations || AI_RECOMMENDATIONS;
         const recsEl = document.getElementById('ai-recommendations');
         recsEl.innerHTML = recs.map(rec =>
-            '<div class="recommendation-card priority-' + rec.priority + '"><h4>' + rec.title + '</h4><p>' + rec.text + '</p></div>'
+            '<div class="recommendation-card priority-' + rec.priority + '"><h4>' + this.ct(rec, 'title') + '</h4><p>' + this.ct(rec, 'text') + '</p></div>'
         ).join('');
     },
 
@@ -1092,7 +1112,9 @@ const app = {
         }
         listEl.innerHTML = this.state.wishes.map(w => {
             const label = { active: this.t('wish_active'), in_progress: this.t('wish_in_progress'), fulfilled: this.t('wish_fulfilled') }[w.status] || this.t('wish_active');
-            return '<div class="wish-card"><p class="wish-text">' + w.text + '</p><div class="wish-meta"><span class="wish-status ' + w.status + '">' + label + '</span><span class="wish-date">' + w.createdAt + '</span></div></div>';
+            const wText = this.ct(w, 'text');
+            const wDate = this.ct(w, 'createdAt');
+            return '<div class="wish-card"><p class="wish-text">' + wText + '</p><div class="wish-meta"><span class="wish-status ' + w.status + '">' + label + '</span><span class="wish-date">' + wDate + '</span></div></div>';
         }).join('');
     },
 
