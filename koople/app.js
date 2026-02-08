@@ -7,7 +7,7 @@ const app = {
     // ── State ──────────────────────────────────────────────
     state: {
         currentScreen: 'intro',
-        previousScreen: null,
+        previousScreen: null
         introSlide: 0,
         user: {
             name: '',
@@ -957,21 +957,27 @@ const app = {
 
         // Try real AI first, fall back to pattern matching
         if (typeof AIService !== 'undefined' && AIService.isConfigured()) {
-            const userContext = {
-                language: (typeof getLang === 'function') ? getLang() : 'en',
-                name: this.state.user.name,
-                partnerName: this.state.user.partnerName,
-                duration: this.state.user.duration,
-                livingTogether: this.state.user.livingTogether,
-                harmonyScore: this.state.analysis ? this.state.analysis.harmony : null,
-                growthAreas: this.state.analysis ? this.state.analysis.growth.join(', ') : ''
-            };
+            const analysis = this.state.analysis || this.getDefaultAnalysis();
+                const userContext = {
+                    language: (typeof getLang === 'function') ? getLang() : 'en',
+                    name: this.state.user.name,
+                    partnerName: this.state.user.partnerName,
+                    duration: this.state.user.duration,
+                    livingTogether: this.state.user.livingTogether,
+                    harmonyScore: analysis.harmony,
+                    growthAreas: analysis.growth ? analysis.growth.join(', ') : '',
+                    strengths: analysis.strengths ? analysis.strengths.join(', ') : '',
+                    questionnaireSummary: (typeof AIService !== 'undefined' && AIService.buildQuestionnaireSummary)
+                        ? AIService.buildQuestionnaireSummary(this.state.onboarding.answers, analysis.catScores)
+                        : ''
+                };
             const result = await AIService.chat(this.state.chat.messages.slice(0, -1).concat([{role:'user', text}]), userContext);
             this.state.chat.isTyping = false;
             this.state.chat.messages.push({ role: 'assistant', text: result.text, time: this.getCurrentTime() });
             if (result.challenge) {
                 this.state.challenges.push(result.challenge);
                 this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + result.challenge.title);
+                    this.showNotification('\uD83C\uDFAF ' + result.challenge.title);
             }
             this.renderChat();
             this.save();
