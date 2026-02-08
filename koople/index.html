@@ -12,40 +12,26 @@
     <div id="app">
         <!-- ═══════ Intro Slides (3 screens explaining the app) ═══════ -->
         <div id="screen-intro" class="screen active">
-            <div class="intro-slides">
-                <div class="intro-slide active" data-slide="0">
-                    <div class="intro-slide-icon">
-                        <svg viewBox="0 0 120 120" fill="none">
-                            <circle cx="42" cy="60" r="32" stroke="var(--primary)" stroke-width="3" fill="none" opacity="0.6"/>
-                            <circle cx="78" cy="60" r="32" stroke="var(--primary)" stroke-width="3" fill="none" opacity="0.6"/>
-                            <path d="M60 38 C54 48, 54 72, 60 82 C66 72, 66 48, 60 38Z" fill="var(--primary)" opacity="0.2"/>
-                        </svg>
+            <div class="intro-container">
+                <div class="intro-slides">
+                    <div class="intro-slide active" data-slide="0">
+                        <div class="intro-brand">
+                            <h1 class="intro-logo">Koople</h1>
+                            <p class="intro-tagline" id="welcome-tagline-intro">AI mediator for couples</p>
+                        </div>
+                        <h2 id="intro-title-0">Your relationship deserves attention</h2>
+                        <p id="intro-desc-0">Koople helps couples understand each other better and resolve micro-conflicts before they grow</p>
                     </div>
-                    <h2 id="intro-title-0">Your relationship deserves attention</h2>
-                    <p id="intro-desc-0">Koople is an AI mediator that helps couples understand each other better and resolve micro-conflicts before they grow</p>
-                </div>
-                <div class="intro-slide" data-slide="1">
-                    <div class="intro-slide-icon">
-                        <svg viewBox="0 0 120 120" fill="none">
-                            <rect x="20" y="30" rx="16" ry="16" width="80" height="55" stroke="var(--primary)" stroke-width="3" fill="none" opacity="0.6"/>
-                            <circle cx="60" cy="58" r="12" stroke="var(--primary)" stroke-width="2.5" fill="var(--primary-light)"/>
-                            <path d="M55 58 L58 62 L66 54" stroke="var(--primary)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
+                    <div class="intro-slide" data-slide="1">
+                        <div class="intro-slide-emoji">&#x1F512;</div>
+                        <h2 id="intro-title-1">Safe and confidential</h2>
+                        <p id="intro-desc-1">Each partner communicates privately with AI. Your words are never shared directly — they are transformed into gentle challenges</p>
                     </div>
-                    <h2 id="intro-title-1">Safe and confidential</h2>
-                    <p id="intro-desc-1">Each partner communicates privately with AI. Your words are never shared directly — they are transformed into gentle challenges</p>
-                </div>
-                <div class="intro-slide" data-slide="2">
-                    <div class="intro-slide-icon">
-                        <svg viewBox="0 0 120 120" fill="none">
-                            <path d="M30 85 L50 50 L70 70 L90 35" stroke="var(--primary)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
-                            <circle cx="90" cy="35" r="6" fill="var(--primary)" opacity="0.4"/>
-                            <circle cx="50" cy="50" r="4" fill="var(--primary)" opacity="0.4"/>
-                            <circle cx="70" cy="70" r="4" fill="var(--primary)" opacity="0.4"/>
-                        </svg>
+                    <div class="intro-slide" data-slide="2">
+                        <div class="intro-slide-emoji">&#x1F331;</div>
+                        <h2 id="intro-title-2">Small steps, big changes</h2>
+                        <p id="intro-desc-2">Personalized mini-challenges help you both grow. Track progress and celebrate achievements together</p>
                     </div>
-                    <h2 id="intro-title-2">Small steps, big changes</h2>
-                    <p id="intro-desc-2">Personalized mini-challenges help you both grow. Track progress and celebrate achievements together</p>
                 </div>
 
                 <!-- Language Selector -->
@@ -72,13 +58,6 @@
         <div id="screen-welcome" class="screen">
             <div class="welcome-container">
                 <div class="welcome-logo">
-                    <div class="logo-icon">
-                        <svg viewBox="0 0 80 80" fill="none">
-                            <circle cx="28" cy="40" r="20" stroke="currentColor" stroke-width="3" fill="none" opacity="0.8"/>
-                            <circle cx="52" cy="40" r="20" stroke="currentColor" stroke-width="3" fill="none" opacity="0.8"/>
-                            <path d="M40 28 C36 34, 36 46, 40 52 C44 46, 44 34, 40 28Z" fill="currentColor" opacity="0.3"/>
-                        </svg>
-                    </div>
                     <h1 class="logo-text">Koople</h1>
                     <p class="logo-tagline" id="welcome-tagline">AI Mediator for Couples</p>
                 </div>
