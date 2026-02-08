@@ -7,7 +7,7 @@ const app = {
     // ── State ──────────────────────────────────────────────
     state: {
         currentScreen: 'intro',
-        previousScreen: null
+        previousScreen: null,
         introSlide: 0,
         user: {
             name: '',
