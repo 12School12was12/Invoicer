@@ -611,37 +611,37 @@ const QUESTIONNAIRE = [
 const DEMO_CHALLENGES = [
     {
         id: 'ch1',
-        title: 'Неделя комплиментов',
-        description: 'Каждый день говорите партнёру один искренний комплимент, который не связан с внешностью',
+        titleKey: 'ch_compliment_week',
+        descKey: 'ch_compliment_week_desc',
         category: 'emotional',
         icon: '\uD83D\uDCAC',
-        duration: '7 дней',
+        durationKey: 'ch_duration_7days',
         difficulty: 'easy',
-        progress: 5,
+        progress: 0,
         total: 7,
         status: 'active',
         assignedTo: 'both'
     },
     {
         id: 'ch2',
-        title: 'Чистая ванная',
-        description: 'Следите за чистотой в ванной после каждого использования: уберите волосы, протрите раковину',
+        titleKey: 'ch_clean_zone',
+        descKey: 'ch_clean_zone_desc',
         category: 'household',
         icon: '\u2728',
-        duration: '7 дней',
+        durationKey: 'ch_duration_7days',
         difficulty: 'easy',
-        progress: 3,
+        progress: 0,
         total: 7,
         status: 'active',
         assignedTo: 'partner'
     },
     {
         id: 'ch3',
-        title: 'Вечер без телефонов',
-        description: 'Проведите вечер вдвоём без телефонов. Поговорите, поиграйте или просто побудьте вместе',
+        titleKey: 'ch_screen_free',
+        descKey: 'ch_screen_free_desc',
         category: 'quality_time',
         icon: '\uD83D\uDCF5',
-        duration: '1 вечер',
+        durationKey: 'ch_duration_1evening',
         difficulty: 'medium',
         progress: 0,
         total: 1,
@@ -650,24 +650,24 @@ const DEMO_CHALLENGES = [
     },
     {
         id: 'ch4',
-        title: 'Благодарность перед сном',
-        description: 'Перед сном расскажите партнёру 3 вещи, за которые вы благодарны ему/ей сегодня',
+        titleKey: 'ch_bedtime_gratitude',
+        descKey: 'ch_bedtime_gratitude_desc',
         category: 'appreciation',
         icon: '\uD83C\uDF19',
-        duration: '5 дней',
+        durationKey: 'ch_duration_5days',
         difficulty: 'easy',
-        progress: 5,
+        progress: 0,
         total: 5,
-        status: 'completed',
+        status: 'suggested',
         assignedTo: 'both'
     },
     {
         id: 'ch5',
-        title: 'Сюрприз-свидание',
-        description: 'Организуйте неожиданное свидание для партнёра. Это может быть что угодно — от ужина дома до прогулки в новом месте',
+        titleKey: 'ch_surprise_date',
+        descKey: 'ch_surprise_date_desc',
         category: 'quality_time',
         icon: '\uD83C\uDF39',
-        duration: 'Однократно',
+        durationKey: 'ch_duration_onetime',
         difficulty: 'medium',
         progress: 0,
         total: 1,
@@ -676,11 +676,11 @@ const DEMO_CHALLENGES = [
     },
     {
         id: 'ch6',
-        title: 'Финансовый вечер',
-        description: 'Устройте спокойный разговор о финансах: обсудите траты за месяц, планы и мечты',
+        titleKey: 'ch_finance_evening',
+        descKey: 'ch_finance_evening_desc',
         category: 'finances',
         icon: '\uD83D\uDCB0',
-        duration: 'Однократно',
+        durationKey: 'ch_duration_onetime',
         difficulty: 'hard',
         progress: 0,
         total: 1,
@@ -689,91 +689,48 @@ const DEMO_CHALLENGES = [
     }
 ];
 
-const DEMO_ACTIVITY = [
-    {
-        type: 'challenge_progress',
-        icon: '\u2705',
-        text: '<strong>Миша</strong> выполнил день 3 в челлендже «Чистая ванная»',
-        time: '2 часа назад'
-    },
-    {
-        type: 'ai_insight',
-        icon: '\uD83E\uDDE0',
-        text: 'AI-медиатор заметил улучшение в категории «Быт» — +8% за неделю!',
-        time: '5 часов назад'
-    },
-    {
-        type: 'challenge_complete',
-        icon: '\uD83C\uDFC6',
-        text: 'Вы оба завершили челлендж «Благодарность перед сном»!',
-        time: 'Вчера'
-    },
-    {
-        type: 'new_challenge',
-        icon: '\uD83C\uDF1F',
-        text: 'AI предложил новый челлендж: «Сюрприз-свидание»',
-        time: 'Вчера'
-    }
-];
+const DEMO_ACTIVITY = [];
 
 const DEMO_WISHES = [
     {
         id: 'w1',
-        text: 'Хочу, чтобы партнёр чаще спрашивал как прошёл мой день',
+        textKey: 'wish_ask_day',
         category: 'emotional',
         status: 'active',
-        createdAt: '3 дня назад'
+        createdAtKey: 'wish_time_3days'
     },
     {
         id: 'w2',
-        text: 'Хочу больше совместных прогулок по вечерам',
+        textKey: 'wish_walks',
         category: 'quality_time',
         status: 'active',
-        createdAt: '1 неделю назад'
+        createdAtKey: 'wish_time_1week'
     },
     {
         id: 'w3',
-        text: 'Хочу чтобы партнёр убирал за собой на кухне сразу после готовки',
+        textKey: 'wish_kitchen',
         category: 'household',
         status: 'in_progress',
-        createdAt: '2 недели назад'
+        createdAtKey: 'wish_time_2weeks'
     }
 ];
 
 const COMPATIBILITY_DATA = [
-    { name: 'Эмоциональная связь', value: 88, color: '#4ade80' },
-    { name: 'Коммуникация', value: 75, color: '#facc15' },
-    { name: 'Быт', value: 62, color: '#fb923c' },
-    { name: 'Близость', value: 85, color: '#4ade80' },
-    { name: 'Финансы', value: 70, color: '#facc15' },
-    { name: 'Время вместе', value: 78, color: '#4ade80' },
-    { name: 'Семья', value: 82, color: '#4ade80' },
-    { name: 'Ценности', value: 90, color: '#4ade80' },
-    { name: 'Привычки', value: 58, color: '#fb923c' }
+    { nameKey: 'compat_emotional', value: 88, color: '#4ade80' },
+    { nameKey: 'compat_communication', value: 75, color: '#facc15' },
+    { nameKey: 'compat_household', value: 62, color: '#fb923c' },
+    { nameKey: 'compat_intimacy', value: 85, color: '#4ade80' },
+    { nameKey: 'compat_finances', value: 70, color: '#facc15' },
+    { nameKey: 'compat_quality_time', value: 78, color: '#4ade80' },
+    { nameKey: 'compat_family', value: 82, color: '#4ade80' },
+    { nameKey: 'compat_values', value: 90, color: '#4ade80' },
+    { nameKey: 'compat_habits', value: 58, color: '#fb923c' }
 ];
 
 const AI_RECOMMENDATIONS = [
-    {
-        title: 'Обсудите бытовые обязанности',
-        text: 'Ваши ответы показывают разногласия в распределении домашних дел. Попробуйте составить совместный список обязанностей.',
-        priority: 'high'
-    },
-    {
-        title: 'Больше качественного времени',
-        text: 'Вы оба хотите проводить больше времени вместе. Выделите хотя бы один вечер в неделю только для двоих.',
-        priority: 'medium'
-    },
-    {
-        title: 'Практикуйте активное слушание',
-        text: 'Когда партнёр рассказывает о своём дне, попробуйте просто слушать без советов и оценок.',
-        priority: 'medium'
-    }
+    { titleKey: 'rec_household_title', textKey: 'rec_household_text', priority: 'high' },
+    { titleKey: 'rec_quality_time_title', textKey: 'rec_quality_time_text', priority: 'medium' },
+    { titleKey: 'rec_listening_title', textKey: 'rec_listening_text', priority: 'medium' }
 ];
 
-const CHAT_WELCOME_MESSAGES = [
-    {
-        role: 'assistant',
-        text: 'Привет! Я ваш AI-медиатор Koople. \uD83D\uDC4B\n\nЯ здесь, чтобы помочь вам и вашему партнёру лучше понимать друг друга.\n\nВы можете рассказать мне о том, что вас беспокоит, попросить совет или просто поговорить о ваших отношениях. Всё, что вы скажете, останется конфиденциальным.',
-        time: 'Сейчас'
-    }
-];
+const CHAT_WELCOME_MESSAGES = [];

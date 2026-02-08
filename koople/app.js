@@ -1,13 +1,14 @@
 // ============================================================
-// KOOPLE — Main Application Logic v2.0
-// AI-Mediator for Couples — Full MVP
+// KOOPLE — Main Application Logic v3.0
+// AI-Mediator for Couples — Full MVP with i18n + AI integration
 // ============================================================
 
 const app = {
     // ── State ──────────────────────────────────────────────
     state: {
-        currentScreen: 'welcome',
+        currentScreen: 'intro',
         previousScreen: null,
+        introSlide: 0,
         user: {
             name: '',
             partnerName: '',
@@ -21,9 +22,9 @@ const app = {
             completed: false
         },
         chat: {
-            messages: [...CHAT_WELCOME_MESSAGES],
+            messages: [],
             isTyping: false,
-            context: [] // tracks conversation topics
+            context: []
         },
         challenges: [...DEMO_CHALLENGES],
         wishes: [...DEMO_WISHES],
@@ -32,23 +33,43 @@ const app = {
         appreciations: [],
         challengeTab: 'active',
         inviteCode: null,
-        analysis: null // filled after onboarding
+        analysis: null
     },
 
     // ── Initialization ────────────────────────────────────
     init() {
+        // Restore saved language before anything else
+        try {
+            const savedLang = localStorage.getItem('koople_lang');
+            if (savedLang && typeof setLang === 'function') setLang(savedLang);
+        } catch (e) { /* storage unavailable */ }
+
         const saved = localStorage.getItem('koople_state');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
                 this.state = Object.assign(this.state, parsed);
+                // Migrate: clear old-format data (hardcoded Russian text, fake activity)
+                if (this.state.activity && this.state.activity.length > 0 &&
+                    this.state.activity.some(a => a.text && /[а-яА-ЯёЁ]/.test(a.text) && /Миша|выполнил|день \d/.test(a.text))) {
+                    this.state.activity = [];
+                }
+                // Migrate old challenges that have title but no titleKey (old Russian-only format)
+                if (this.state.challenges && this.state.challenges.length > 0 &&
+                    this.state.challenges[0].title && !this.state.challenges[0].titleKey) {
+                    this.state.challenges = [...DEMO_CHALLENGES];
+                }
                 if (this.state.user.name && this.state.onboarding.completed) {
                     this.navigate('dashboard');
                     return;
                 }
             } catch (e) { /* ignore corrupt data */ }
         }
-        this.navigate('welcome');
+        this.initIntroSlides();
+        this.applyTranslations();
+        // navigate('intro') would return early since intro is already active from HTML,
+        // so we just set the state directly
+        this.state.currentScreen = 'intro';
     },
 
     save() {
@@ -57,13 +78,189 @@ const app = {
 
     resetData() {
         localStorage.removeItem('koople_state');
+        localStorage.removeItem('koople_lang');
+        localStorage.removeItem('koople_ai_config');
         location.reload();
+    },
+
+    // ── i18n helpers ─────────────────────────────────────
+    // Resolve: if object has a key-based field, translate it; else use raw text
+    ct(obj, field) {
+        if (obj[field + 'Key']) return this.t(obj[field + 'Key']);
+        return obj[field] || '';
+    },
+
+    t(key) {
+        return (typeof t === 'function') ? t(key) : key;
+    },
+
+    applyTranslations() {
+        // Nav labels
+        document.querySelectorAll('[data-nav]').forEach(el => {
+            const key = 'nav_' + el.dataset.nav;
+            el.textContent = this.t(key);
+        });
+        // Static text elements by ID mapping
+        const map = {
+            'welcome-tagline': 'app_tagline',
+            'welcome-feature1': 'intro_1_title',
+            'welcome-feature2': 'intro_2_title',
+            'welcome-feature3': 'intro_3_title',
+            'btn-start': 'btn_start',
+            'btn-login': 'btn_have_account',
+            'login-title': 'login_title',
+            'login-email-label': 'login_email_label',
+            'login-password-label': 'login_password_label',
+            'login-submit-btn': 'btn_login',
+            'setup-title': 'setup_title',
+            'setup-subtitle': 'setup_subtitle',
+            'setup-name-label': 'setup_name_label',
+            'setup-partner-label': 'setup_partner_label',
+            'setup-duration-label': 'setup_duration_label',
+            'setup-living-label': 'setup_living_label',
+            'setup-email-label': 'setup_email_label',
+            'setup-next-btn': 'btn_next',
+            'setup-yes-btn': 'yes',
+            'setup-no-btn': 'no',
+            'setup-dur-default': 'select_placeholder',
+            'setup-dur-6m': 'duration_opt_1',
+            'setup-dur-6m1y': 'duration_opt_2',
+            'setup-dur-1-3y': 'duration_opt_3',
+            'setup-dur-3-5y': 'duration_opt_4',
+            'setup-dur-5-10y': 'duration_opt_5',
+            'setup-dur-10y': 'duration_opt_6',
+            'btn-skip-question': 'btn_skip',
+            'btn-next-question': 'btn_next',
+            'complete-title': 'onboarding_complete_title',
+            'complete-subtitle': 'onboarding_complete_text',
+            'complete-invite-title': 'invite_title',
+            'complete-invite-desc': 'invite_text',
+            'btn-copy': 'btn_copy',
+            'btn-share': 'btn_share_invite',
+            'btn-go-dashboard': 'btn_go_dashboard',
+            'health-label': 'harmony_label',
+            'dash-challenges-title': 'active_challenges_title',
+            'dash-all-btn': 'btn_all',
+            'action-mediator': 'action_talk',
+            'action-complaint': 'action_concern',
+            'action-praise': 'action_appreciate',
+            'action-wishes': 'action_wishes',
+            'dash-recent-title': 'section_recent',
+            'challenges-page-title': 'challenges_title',
+            'challenges-page-subtitle': 'challenges_subtitle',
+            'tab-active': 'tab_active',
+            'tab-completed': 'tab_completed',
+            'tab-suggested': 'tab_suggested',
+            'chat-status': 'mediator_status',
+            'insights-page-title': 'insights_title',
+            'insights-page-subtitle': 'insights_subtitle',
+            'strengths-title': 'strengths_title',
+            'growth-title': 'growth_title',
+            'compat-title': 'compat_title',
+            'progress-title': 'progress_month_title',
+            'recs-title': 'ai_rec_title',
+            'wishes-page-title': 'wishes_title',
+            'wishes-page-subtitle': 'wishes_subtitle',
+            'profile-couple-label': 'profile_couple_with',
+            'settings-retake': 'settings_retake',
+            'settings-invite': 'settings_invite',
+            'settings-language': 'settings_language',
+            'settings-ai': 'settings_ai',
+            'settings-notif': 'settings_notifications',
+            'settings-privacy': 'settings_privacy',
+            'settings-help': 'settings_help',
+            'settings-about': 'settings_about',
+            'btn-intro-skip': 'btn_skip',
+            'btn-intro-next': 'btn_next',
+            'btn-milestone-continue': 'milestone_btn',
+            'intro-lang-label': 'setup_lang_label'
+        };
+        for (const [id, key] of Object.entries(map)) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = this.t(key);
+        }
+        // Intro slides
+        for (let i = 0; i < 3; i++) {
+            const tEl = document.getElementById('intro-title-' + i);
+            const dEl = document.getElementById('intro-desc-' + i);
+            if (tEl) tEl.textContent = this.t('intro_' + (i+1) + '_title');
+            if (dEl) dEl.textContent = this.t('intro_' + (i+1) + '_text');
+        }
+        // Chat suggestions
+        const s1 = document.getElementById('suggestion-1');
+        const s2 = document.getElementById('suggestion-2');
+        const s3 = document.getElementById('suggestion-3');
+        if (s1) s1.textContent = this.t('suggestion_1');
+        if (s2) s2.textContent = this.t('suggestion_2');
+        if (s3) s3.textContent = this.t('suggestion_3');
+        // Chat input placeholder
+        const ci = document.getElementById('chat-input');
+        if (ci) ci.placeholder = this.t('chat_placeholder');
+        // Setup input placeholders
+        const sn = document.getElementById('setup-name');
+        if (sn) sn.placeholder = this.t('setup_name_placeholder');
+        const sp = document.getElementById('setup-partner');
+        if (sp) sp.placeholder = this.t('setup_partner_placeholder');
+    },
+
+    // ── Intro Slides ─────────────────────────────────────
+    initIntroSlides() {
+        const grid = document.getElementById('lang-grid');
+        if (grid && typeof LANGUAGES !== 'undefined') {
+            const currentLangCode = (typeof getLang === 'function') ? getLang() : 'en';
+            grid.innerHTML = LANGUAGES.map(l => `
+                <button class="lang-option ${l.code === currentLangCode ? 'active' : ''}" onclick="app.selectLanguage('${l.code}')">
+                    <span class="lang-flag">${l.flag}</span>
+                    <span class="lang-name">${l.name}</span>
+                </button>
+            `).join('');
+        }
+        this.updateIntroSlide();
+    },
+
+    selectLanguage(code) {
+        if (typeof setLang === 'function') setLang(code);
+        try { localStorage.setItem('koople_lang', code); } catch(e) {}
+        // Update lang grid active state
+        document.querySelectorAll('.lang-option').forEach(btn => {
+            btn.classList.toggle('active', btn.querySelector('.lang-name').textContent ===
+                (LANGUAGES.find(l => l.code === code) || {}).name);
+        });
+        this.applyTranslations();
+        this.updateIntroSlide();
+    },
+
+    updateIntroSlide() {
+        const slides = document.querySelectorAll('.intro-slide');
+        const dots = document.querySelectorAll('.intro-dot');
+        const idx = this.state.introSlide;
+        slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+        // Show language selector only on first slide
+        const langSel = document.getElementById('lang-selector');
+        if (langSel) langSel.style.display = idx === 0 ? 'block' : 'none';
+        // Update button text
+        const btn = document.getElementById('btn-intro-next');
+        if (btn) btn.textContent = idx === 2 ? this.t('btn_start') : this.t('btn_next');
+    },
+
+    nextIntroSlide() {
+        if (this.state.introSlide < 2) {
+            this.state.introSlide++;
+            this.updateIntroSlide();
+        } else {
+            this.navigate('welcome');
+        }
+    },
+
+    skipIntro() {
+        this.navigate('welcome');
     },
 
     // ── Navigation ────────────────────────────────────────
     navigate(screenId) {
         const current = document.querySelector('.screen.active');
-        const next = document.getElementById(`screen-${screenId}`);
+        const next = document.getElementById('screen-' + screenId);
         if (!next || next === current) return;
 
         this.state.previousScreen = this.state.currentScreen;
@@ -76,7 +273,6 @@ const app = {
         }
         next.classList.add('active');
 
-        // Screen-specific setup
         switch (screenId) {
             case 'dashboard': this.renderDashboard(); break;
             case 'challenges': this.renderChallenges(); break;
@@ -85,13 +281,15 @@ const app = {
             case 'wishes': this.renderWishes(); break;
             case 'onboarding': this.renderQuestion(); break;
             case 'profile': this.renderProfile(); break;
+            case 'welcome': this.applyTranslations(); break;
+            case 'setup': this.applyTranslations(); break;
+            case 'intro': this.initIntroSlides(); this.applyTranslations(); break;
         }
 
-        // Update active nav items in target screen
         const navScreens = next.querySelectorAll('.bottom-nav .nav-item');
         navScreens.forEach(item => {
             const onclick = item.getAttribute('onclick') || '';
-            item.classList.toggle('active', onclick.includes(`'${screenId}'`));
+            item.classList.toggle('active', onclick.includes("'" + screenId + "'"));
         });
     },
 
@@ -100,8 +298,8 @@ const app = {
     showLogin() { this.navigate('login'); },
 
     login() {
-        this.state.user.name = 'Аня';
-        this.state.user.partnerName = 'Миша';
+        this.state.user.name = 'User';
+        this.state.user.partnerName = 'Partner';
         this.state.onboarding.completed = true;
         this.state.analysis = this.getDefaultAnalysis();
         this.save();
@@ -115,6 +313,14 @@ const app = {
         this.state.user.livingTogether = document.getElementById('setup-living').value;
         this.state.user.email = document.getElementById('setup-email').value;
         this.state.onboarding.currentIndex = 0;
+        this.save();
+        this.navigate('onboarding');
+    },
+
+    retakeQuestionnaire() {
+        this.state.onboarding.currentIndex = 0;
+        this.state.onboarding.answers = {};
+        this.state.onboarding.completed = false;
         this.save();
         this.navigate('onboarding');
     },
@@ -136,22 +342,33 @@ const app = {
         const progress = ((idx + 1) / total) * 100;
 
         document.getElementById('onboarding-progress').style.width = progress + '%';
-        document.getElementById('onboarding-progress-text').textContent = `${idx + 1} / ${total}`;
+        document.getElementById('onboarding-progress-text').textContent = (idx + 1) + ' / ' + total;
         document.getElementById('category-icon').textContent = q.categoryIcon;
-        document.getElementById('category-name').textContent = q.categoryName;
-        document.getElementById('question-text').textContent = q.text;
-        document.getElementById('question-hint').textContent = q.hint || '';
+
+        // i18n for category name
+        const catKey = 'cat_' + q.category;
+        document.getElementById('category-name').textContent = this.t(catKey) !== catKey ? this.t(catKey) : q.categoryName;
+
+        // i18n for question text / hint
+        const qText = (typeof qt === 'function' && qt(q.id, 'text')) || q.text;
+        const qHint = (typeof qt === 'function' && qt(q.id, 'hint')) || q.hint || '';
+        document.getElementById('question-text').textContent = qText;
+        document.getElementById('question-hint').textContent = qHint;
 
         const area = document.getElementById('answer-area');
         area.innerHTML = '';
         const existing = this.state.onboarding.answers[q.id];
 
+        // Get translated options/scaleLabels if available
+        const qOpts = (typeof qt === 'function' && qt(q.id, 'options')) || null;
+        const qScale = (typeof qt === 'function' && qt(q.id, 'scaleLabels')) || null;
+
         switch (q.type) {
             case 'single':
-                q.options.forEach(opt => {
+                q.options.forEach((opt, oi) => {
                     const btn = document.createElement('button');
                     btn.className = 'option-btn' + (existing === opt.value ? ' selected' : '');
-                    btn.textContent = opt.label;
+                    btn.textContent = (qOpts && qOpts[oi]) || opt.label;
                     btn.onclick = () => {
                         area.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
@@ -163,10 +380,10 @@ const app = {
 
             case 'multi':
                 const selected = existing || [];
-                q.options.forEach(opt => {
+                q.options.forEach((opt, oi) => {
                     const btn = document.createElement('button');
                     btn.className = 'option-btn multi' + (selected.includes(opt.value) ? ' selected' : '');
-                    btn.innerHTML = `<span class="check-icon"></span>${opt.label}`;
+                    btn.innerHTML = '<span class="check-icon"></span>' + ((qOpts && qOpts[oi]) || opt.label);
                     btn.onclick = () => {
                         let cur = this.state.onboarding.answers[q.id] || [];
                         if (cur.includes(opt.value)) {
@@ -186,11 +403,12 @@ const app = {
             case 'scale':
                 const sc = document.createElement('div');
                 sc.className = 'scale-container';
-                q.scaleLabels.forEach((label, i) => {
+                const labels = qScale || q.scaleLabels;
+                labels.forEach((label, i) => {
                     const val = i + 1;
                     const item = document.createElement('button');
                     item.className = 'scale-item' + (existing === val ? ' selected' : '');
-                    item.innerHTML = `<span class="scale-number">${val}</span><span class="scale-label">${label}</span>`;
+                    item.innerHTML = '<span class="scale-number">' + val + '</span><span class="scale-label">' + label + '</span>';
                     item.onclick = () => {
                         sc.querySelectorAll('.scale-item').forEach(s => s.classList.remove('selected'));
                         item.classList.add('selected');
@@ -204,7 +422,8 @@ const app = {
             case 'textarea':
                 const ta = document.createElement('textarea');
                 ta.className = 'answer-textarea';
-                ta.placeholder = q.placeholder || '';
+                const qPh = (typeof qt === 'function' && qt(q.id, 'placeholder')) || q.placeholder || '';
+                ta.placeholder = qPh;
                 ta.rows = 4;
                 ta.value = existing || '';
                 ta.oninput = () => { this.state.onboarding.answers[q.id] = ta.value; };
@@ -219,9 +438,16 @@ const app = {
     },
 
     nextQuestion() {
-        if (this.state.onboarding.currentIndex < QUESTIONNAIRE.length - 1) {
+        const idx = this.state.onboarding.currentIndex;
+        if (idx < QUESTIONNAIRE.length - 1) {
             this.state.onboarding.currentIndex++;
-            this.renderQuestion();
+            // Check for milestones at Q10, Q20, Q30
+            const nextIdx = this.state.onboarding.currentIndex;
+            if (nextIdx === 10 || nextIdx === 20 || nextIdx === 30) {
+                this.showMilestone(nextIdx);
+            } else {
+                this.renderQuestion();
+            }
             this.save();
         } else {
             this.completeOnboarding();
@@ -239,6 +465,38 @@ const app = {
 
     skipQuestion() { this.nextQuestion(); },
 
+    // ── Milestones (motivational screens during quiz) ─────
+    showMilestone(questionIndex) {
+        const overlay = document.getElementById('milestone-overlay');
+        if (!overlay) { this.renderQuestion(); return; }
+
+        const emojis = { 10: '\uD83C\uDF89', 20: '\uD83D\uDE80', 30: '\uD83C\uDFC6' };
+        const pct = Math.round((questionIndex / QUESTIONNAIRE.length) * 100);
+
+        document.getElementById('milestone-emoji').textContent = emojis[questionIndex] || '\uD83C\uDF1F';
+        document.getElementById('milestone-pct').textContent = pct + '%';
+        document.getElementById('milestone-title').textContent = this.t('milestone_' + questionIndex + '_title');
+        document.getElementById('milestone-desc').textContent = this.t('milestone_' + questionIndex + '_text');
+        document.getElementById('btn-milestone-continue').textContent = this.t('milestone_btn');
+
+        // Animate ring
+        const ring = document.getElementById('milestone-ring-fill');
+        if (ring) {
+            const circumference = 2 * Math.PI * 42;
+            const offset = circumference * (1 - pct / 100);
+            ring.setAttribute('stroke-dasharray', circumference.toFixed(2));
+            ring.setAttribute('stroke-dashoffset', offset.toFixed(2));
+        }
+
+        overlay.classList.add('active');
+    },
+
+    closeMilestone() {
+        const overlay = document.getElementById('milestone-overlay');
+        if (overlay) overlay.classList.remove('active');
+        this.renderQuestion();
+    },
+
     completeOnboarding() {
         this.state.onboarding.completed = true;
         this.state.inviteCode = this.generateInviteCode();
@@ -246,11 +504,11 @@ const app = {
         this.state.challenges = this.generateInitialChallenges();
         this.save();
 
-        // Set invite code in DOM
         const codeEl = document.getElementById('invite-code');
         if (codeEl) codeEl.textContent = this.state.inviteCode;
 
         this.navigate('onboarding-complete');
+        this.applyTranslations();
     },
 
     generateInviteCode() {
@@ -261,11 +519,10 @@ const app = {
     },
 
     // ============================================================
-    // ANALYSIS ENGINE — converts answers into insights
+    // ANALYSIS ENGINE
     // ============================================================
     analyzeAnswers() {
         const a = this.state.onboarding.answers;
-
         const catScores = {
             emotional: this.scoreCategory(a, [
                 { id: 'emo_express', type: 'scale', weight: 1.2 },
@@ -311,7 +568,6 @@ const app = {
             ])
         };
 
-        // Clamp all scores to 40-98 range for realism
         Object.keys(catScores).forEach(k => {
             catScores[k] = Math.max(40, Math.min(98, catScores[k]));
         });
@@ -319,67 +575,40 @@ const app = {
         const total = Object.values(catScores);
         const harmony = Math.round(total.reduce((s, v) => s + v, 0) / total.length);
 
-        // Identify strengths (top 3) and growth areas (bottom 3)
         const sorted = Object.entries(catScores).sort((a, b) => b[1] - a[1]);
-        const categoryLabels = {
-            emotional: 'Эмоциональная связь',
-            communication: 'Коммуникация',
-            household: 'Быт и дом',
-            intimacy: 'Близость и интимность',
-            finances: 'Финансы',
-            quality_time: 'Время вместе',
-            family: 'Семья и окружение',
-            values: 'Ценности и цели',
-            habits: 'Привычки'
-        };
-
-        const strengths = sorted.slice(0, 3).map(([k]) => categoryLabels[k]);
-        const growth = sorted.slice(-3).reverse().map(([k]) => categoryLabels[k]);
-
-        // Generate personalized recommendations
+        const strengths = sorted.slice(0, 3).map(([k]) => this.t('cat_' + k));
+        const growth = sorted.slice(-3).reverse().map(([k]) => this.t('cat_' + k));
         const recommendations = this.generateRecommendations(a, catScores);
 
         return { catScores, harmony, strengths, growth, recommendations };
     },
 
     scoreCategory(answers, rules) {
-        let totalScore = 0;
-        let totalWeight = 0;
-
+        let totalScore = 0, totalWeight = 0;
         for (const rule of rules) {
             const val = answers[rule.id];
             if (val === undefined || val === null) continue;
-
-            let score = 0.5; // default neutral
+            let score = 0.5;
             switch (rule.type) {
-                case 'scale':
-                    score = (val - 1) / 4; // 1-5 → 0-1
-                    break;
-                case 'positive_if':
-                    score = rule.values.includes(val) ? 0.85 : 0.35;
-                    break;
+                case 'scale': score = (val - 1) / 4; break;
+                case 'positive_if': score = rule.values.includes(val) ? 0.85 : 0.35; break;
                 case 'fewer_is_better':
                     if (Array.isArray(val)) {
                         if (val.includes(rule.noneValue)) score = 0.95;
                         else score = Math.max(0.15, 1 - val.length * 0.15);
-                    } else {
-                        score = val === rule.noneValue ? 0.95 : 0.5;
-                    }
+                    } else { score = val === rule.noneValue ? 0.95 : 0.5; }
                     break;
             }
             totalScore += score * rule.weight;
             totalWeight += rule.weight;
         }
-
-        if (totalWeight === 0) return 70; // default if no answers
+        if (totalWeight === 0) return 70;
         return Math.round((totalScore / totalWeight) * 100);
     },
 
     generateRecommendations(answers, scores) {
         const recs = [];
         const entries = Object.entries(scores).sort((a, b) => a[1] - b[1]);
-
-        // Focus on lowest-scoring areas
         for (const [cat, score] of entries.slice(0, 3)) {
             const priority = score < 55 ? 'high' : score < 70 ? 'medium' : 'low';
             const rec = this.getRecommendationForCategory(cat, answers, priority);
@@ -390,42 +619,15 @@ const app = {
 
     getRecommendationForCategory(cat, answers, priority) {
         const recs = {
-            household: {
-                title: 'Наладьте бытовой баланс',
-                text: 'Попробуйте составить совместный список обязанностей. Каждый выбирает то, что ему не в тягость — так распределение будет честнее.'
-            },
-            communication: {
-                title: 'Практикуйте безопасные разговоры',
-                text: 'Выделите 15 минут в день на разговор без телефонов. Правило: только слушать, не давая советов и не оценивая.'
-            },
-            intimacy: {
-                title: 'Увеличьте физическую близость',
-                text: 'Начните с несексуальных прикосновений: объятия, держаться за руки. Это восстанавливает связь постепенно.'
-            },
-            finances: {
-                title: 'Проведите финансовый вечер',
-                text: 'Раз в месяц обсуждайте бюджет без упрёков. Начните с одной общей финансовой цели — это сближает.'
-            },
-            quality_time: {
-                title: 'Запланируйте «время вдвоём»',
-                text: 'Выделите минимум один вечер в неделю только для вас двоих. Без телефонов, без планов — просто побудьте вместе.'
-            },
-            family: {
-                title: 'Установите границы с семьями',
-                text: 'Обсудите, какие темы не стоит обсуждать с родственниками. Единый фронт перед семьями — основа доверия.'
-            },
-            emotional: {
-                title: 'Выучите язык любви партнёра',
-                text: 'Попробуйте неделю показывать любовь на языке, который важен партнёру, а не на своём привычном.'
-            },
-            values: {
-                title: 'Обсудите ваше будущее',
-                text: 'Найдите тихий вечер и поговорите о том, где вы видите себя через 5 лет. Без давления — просто мечтайте вместе.'
-            },
-            habits: {
-                title: 'Заведите ритуал благодарности',
-                text: 'Каждый вечер делитесь одной вещью, за которую вы благодарны партнёру. Это переключает фокус с раздражителей на позитив.'
-            }
+            household: { title: this.t('cat_household'), text: this.t('empty_suggested') },
+            communication: { title: this.t('cat_communication'), text: '' },
+            intimacy: { title: this.t('cat_intimacy'), text: '' },
+            finances: { title: this.t('cat_finances'), text: '' },
+            quality_time: { title: this.t('cat_quality_time'), text: '' },
+            family: { title: this.t('cat_family'), text: '' },
+            emotional: { title: this.t('cat_emotional'), text: '' },
+            values: { title: this.t('cat_values'), text: '' },
+            habits: { title: this.t('cat_habits'), text: '' }
         };
         const r = recs[cat];
         return r ? { ...r, priority } : null;
@@ -439,86 +641,61 @@ const app = {
                 family: 80, values: 88, habits: 58
             },
             harmony: 75,
-            strengths: ['Ценности и цели', 'Близость и интимность', 'Эмоциональная связь'],
-            growth: ['Привычки', 'Быт и дом', 'Финансы'],
+            strengths: [this.t('cat_values'), this.t('cat_intimacy'), this.t('cat_emotional')],
+            growth: [this.t('cat_habits'), this.t('cat_household'), this.t('cat_finances')],
             recommendations: AI_RECOMMENDATIONS
         };
     },
 
     generateInitialChallenges() {
         const a = this.state.onboarding.answers;
-        const analysis = this.state.analysis;
-        const partnerName = this.state.user.partnerName || 'партнёр';
         const challenges = [];
         let id = 1;
 
-        // Challenge based on love language
         const loveLang = a.emo_love_language;
         const loveChallenges = {
-            words: { title: 'Неделя комплиментов', desc: 'Каждый день говорите партнёру один искренний комплимент', icon: '\uD83D\uDCAC' },
-            touch: { title: 'Неделя объятий', desc: 'Обнимайте партнёра минимум 3 раза в день — утром, днём и вечером', icon: '\uD83E\uDEC2' },
-            time: { title: 'Вечера вдвоём', desc: 'Каждый вечер 20 минут только для вас — без телефонов и отвлечений', icon: '\u23F0' },
-            gifts: { title: 'Неделя сюрпризов', desc: 'Каждый день маленький знак внимания: записка, кофе в постель, цветок', icon: '\uD83C\uDF81' },
-            service: { title: 'Неделя заботы', desc: 'Каждый день делайте одну вещь за партнёра: готовка, уборка, поручение', icon: '\uD83D\uDCAA' }
+            words: { titleKey: 'ch_compliment_week', descKey: 'ch_compliment_week_desc', icon: '\uD83D\uDCAC' },
+            touch: { titleKey: 'ch_hug_week', descKey: 'ch_hug_week_desc', icon: '\uD83E\uDEC2' },
+            time: { titleKey: 'ch_evenings_together', descKey: 'ch_evenings_together_desc', icon: '\u23F0' },
+            gifts: { titleKey: 'ch_surprise_week', descKey: 'ch_surprise_week_desc', icon: '\uD83C\uDF81' },
+            service: { titleKey: 'ch_care_week', descKey: 'ch_care_week_desc', icon: '\uD83D\uDCAA' }
         };
         if (loveLang && loveChallenges[loveLang]) {
             const lc = loveChallenges[loveLang];
             challenges.push({
-                id: 'ch' + id++, title: lc.title, description: lc.desc,
-                category: 'emotional', icon: lc.icon, duration: '7 дней',
+                id: 'ch' + id++, titleKey: lc.titleKey, descKey: lc.descKey,
+                category: 'emotional', icon: lc.icon, durationKey: 'ch_duration_7days',
                 difficulty: 'easy', progress: 0, total: 7, status: 'active', assignedTo: 'both'
             });
         }
 
-        // Challenge based on household annoyances
         const annoyances = a.house_annoy || [];
         if (annoyances.includes('bathroom') || annoyances.includes('mess')) {
             challenges.push({
-                id: 'ch' + id++, title: 'Чистая зона', description: 'Следите за порядком в общих зонах: ванная, кухня. После себя — всегда чисто.',
-                category: 'household', icon: '\u2728', duration: '7 дней',
+                id: 'ch' + id++, titleKey: 'ch_clean_zone', descKey: 'ch_clean_zone_desc',
+                category: 'household', icon: '\u2728', durationKey: 'ch_duration_7days',
                 difficulty: 'easy', progress: 0, total: 7, status: 'active', assignedTo: 'partner'
             });
         }
         if (annoyances.includes('phone')) {
             challenges.push({
-                id: 'ch' + id++, title: 'Вечер без телефонов', description: 'Проведите вечер вдвоём без телефонов. Поговорите, поиграйте или просто побудьте вместе.',
-                category: 'quality_time', icon: '\uD83D\uDCF5', duration: '1 вечер',
+                id: 'ch' + id++, titleKey: 'ch_screen_free', descKey: 'ch_screen_free_desc',
+                category: 'quality_time', icon: '\uD83D\uDCF5', durationKey: 'ch_duration_1evening',
                 difficulty: 'medium', progress: 0, total: 1, status: 'active', assignedTo: 'both'
             });
         }
-        if (annoyances.includes('dishes')) {
-            challenges.push({
-                id: 'ch' + id++, title: 'Правило чистой раковины', description: 'Мойте посуду сразу после еды — не оставляйте на потом.',
-                category: 'household', icon: '\uD83E\uDDFD', duration: '5 дней',
-                difficulty: 'easy', progress: 0, total: 5, status: 'suggested', assignedTo: 'partner'
-            });
-        }
 
-        // Gratitude challenge is always helpful
         challenges.push({
-            id: 'ch' + id++, title: 'Благодарность перед сном',
-            description: 'Перед сном расскажите партнёру 3 вещи, за которые вы благодарны ему/ей сегодня.',
-            category: 'appreciation', icon: '\uD83C\uDF19', duration: '5 дней',
+            id: 'ch' + id++, titleKey: 'ch_bedtime_gratitude', descKey: 'ch_bedtime_gratitude_desc',
+            category: 'appreciation', icon: '\uD83C\uDF19', durationKey: 'ch_duration_5days',
             difficulty: 'easy', progress: 0, total: 5, status: 'suggested', assignedTo: 'both'
         });
 
-        // Financial challenge if tensions exist
         if (['sometimes', 'often', 'constant'].includes(a.fin_tension)) {
             challenges.push({
-                id: 'ch' + id++, title: 'Финансовый вечер',
-                description: 'Устройте спокойный разговор о финансах: обсудите траты за месяц, планы и мечты.',
-                category: 'finances', icon: '\uD83D\uDCB0', duration: 'Однократно',
+                id: 'ch' + id++, titleKey: 'ch_finance_evening', descKey: 'ch_finance_evening_desc',
+                category: 'finances', icon: '\uD83D\uDCB0', durationKey: 'ch_duration_onetime',
                 difficulty: 'hard', progress: 0, total: 1, status: 'suggested', assignedTo: 'both'
-            });
-        }
-
-        // Quality time challenge
-        if (a.time_together && a.time_together <= 3) {
-            challenges.push({
-                id: 'ch' + id++, title: 'Сюрприз-свидание',
-                description: 'Организуйте неожиданное свидание для партнёра — от ужина дома до прогулки в новом месте.',
-                category: 'quality_time', icon: '\uD83C\uDF39', duration: 'Однократно',
-                difficulty: 'medium', progress: 0, total: 1, status: 'suggested', assignedTo: 'user'
             });
         }
 
@@ -526,17 +703,17 @@ const app = {
     },
 
     copyInviteCode() {
-        const code = (this.state.inviteCode || document.getElementById('invite-code').textContent);
+        const code = this.state.inviteCode || document.getElementById('invite-code').textContent;
         navigator.clipboard.writeText(code).then(() => {
             const btns = document.querySelectorAll('.btn-copy');
-            btns.forEach(btn => { btn.textContent = 'Скопировано!'; });
-            setTimeout(() => btns.forEach(btn => { btn.textContent = 'Копировать'; }), 2000);
+            btns.forEach(btn => { btn.textContent = this.t('btn_copied'); });
+            setTimeout(() => btns.forEach(btn => { btn.textContent = this.t('btn_copy'); }), 2000);
         }).catch(() => {});
     },
 
     shareInvite() {
         const code = this.state.inviteCode || 'KOOPLE-A7X9';
-        const text = `Присоединяйся ко мне в Koople — AI-медиаторе для пар! Мой код: ${code}`;
+        const text = 'Join me on Koople — AI mediator for couples! My code: ' + code;
         if (navigator.share) navigator.share({ title: 'Koople', text });
         else this.copyInviteCode();
     },
@@ -545,17 +722,26 @@ const app = {
 
     // ── Dashboard ─────────────────────────────────────────
     renderDashboard() {
-        const name = this.state.user.name || 'Аня';
+        this.applyTranslations();
+        const name = this.state.user.name || 'User';
         const analysis = this.state.analysis || this.getDefaultAnalysis();
         const harmony = analysis.harmony;
 
-        document.getElementById('greeting').textContent = `Привет, ${name}!`;
+        document.getElementById('greeting').textContent = this.t('greeting_prefix') + ' ' + name + '!';
         document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
 
-        // Dynamic health card
+        // Weekly focus — based on lowest scoring area
+        const greetingSub = document.getElementById('greeting-sub');
+        if (greetingSub) {
+            const cats = analysis.catScores;
+            const focusAreas = ['communication', 'household', 'emotional', 'quality_time', 'intimacy', 'finances'];
+            const lowestCat = focusAreas.sort((a, b) => (cats[a] || 70) - (cats[b] || 70))[0];
+            greetingSub.textContent = this.t('dashboard_subtitle').split(':')[0] + ': ' + this.t('cat_' + lowestCat);
+        }
+
+        // Health score
         const scoreValue = document.getElementById('health-score-value');
         if (scoreValue) scoreValue.textContent = harmony;
-
         const scoreCircle = document.querySelector('.score-circle');
         if (scoreCircle) {
             const circumference = 2 * Math.PI * 42;
@@ -564,33 +750,33 @@ const app = {
             scoreCircle.setAttribute('stroke-dashoffset', offset.toFixed(2));
         }
 
-        // Dynamic score details
+        // Score details
         const detailsEl = document.getElementById('score-details');
         if (detailsEl) {
             const cats = analysis.catScores;
             const topCats = [
-                { name: 'Коммуникация', val: cats.communication },
-                { name: 'Быт', val: cats.household },
-                { name: 'Близость', val: cats.intimacy },
-                { name: 'Баланс', val: cats.quality_time }
+                { name: this.t('cat_communication'), val: cats.communication },
+                { name: this.t('cat_household'), val: cats.household },
+                { name: this.t('cat_intimacy'), val: cats.intimacy },
+                { name: this.t('cat_quality_time'), val: cats.quality_time }
             ];
             detailsEl.innerHTML = topCats.map(c => {
                 const dotClass = c.val >= 80 ? 'dot-green' : c.val >= 65 ? 'dot-yellow' : 'dot-orange';
-                return `<div class="score-detail"><span class="dot ${dotClass}"></span> ${c.name}: ${c.val}%</div>`;
+                return '<div class="score-detail"><span class="dot ' + dotClass + '"></span> ' + c.name + ': ' + c.val + '%</div>';
             }).join('');
         }
 
-        // Render active challenges
+        // Active challenges
         const challengesEl = document.getElementById('active-challenges');
         const active = this.state.challenges.filter(c => c.status === 'active');
         if (active.length === 0) {
-            challengesEl.innerHTML = '<p style="color:var(--text-tertiary);font-size:14px;padding:12px">Нет активных челленджей. Примите предложенные!</p>';
+            challengesEl.innerHTML = '<p style="color:var(--text-tertiary);font-size:14px;padding:12px">' + this.t('no_active_challenges') + '</p>';
         } else {
             challengesEl.innerHTML = active.map(ch => `
                 <div class="challenge-card-mini" onclick="app.showChallengeDetail('${ch.id}')">
                     <div class="challenge-mini-icon">${ch.icon}</div>
                     <div class="challenge-mini-info">
-                        <h4>${ch.title}</h4>
+                        <h4>${this.ct(ch, 'title')}</h4>
                         <div class="challenge-mini-progress">
                             <div class="mini-progress-bar">
                                 <div class="mini-progress-fill" style="width:${(ch.progress/ch.total)*100}%"></div>
@@ -602,21 +788,26 @@ const app = {
             `).join('');
         }
 
-        // Render activity feed
+        // Activity feed — only real partner achievements
         const feedEl = document.getElementById('activity-feed');
-        feedEl.innerHTML = this.state.activity.slice(0, 6).map(a => `
-            <div class="activity-item">
-                <span class="activity-icon">${a.icon}</span>
-                <div class="activity-content">
-                    <p>${a.text}</p>
-                    <span class="activity-time">${a.time}</span>
+        if (this.state.activity.length === 0) {
+            feedEl.innerHTML = '<p style="color:var(--text-tertiary);font-size:14px;padding:12px;text-align:center">' + this.t('empty_completed') + '</p>';
+        } else {
+            feedEl.innerHTML = this.state.activity.slice(0, 6).map(a => `
+                <div class="activity-item">
+                    <span class="activity-icon">${a.icon}</span>
+                    <div class="activity-content">
+                        <p>${a.text}</p>
+                        <span class="activity-time">${a.time}</span>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
+        }
     },
 
     // ── Challenges ────────────────────────────────────────
     renderChallenges() {
+        this.applyTranslations();
         this.switchChallengeTab(this.state.challengeTab);
     },
 
@@ -629,40 +820,43 @@ const app = {
 
         const list = document.getElementById('challenges-list');
         const filtered = this.state.challenges.filter(c => c.status === tab);
-        const partnerName = this.state.user.partnerName || 'партнёра';
+        const partnerName = this.state.user.partnerName || 'Partner';
 
         if (filtered.length === 0) {
             const msgs = {
-                active: 'Нет активных челленджей. Примите предложенные!',
-                completed: 'Пока нет завершённых челленджей',
-                suggested: 'AI готовит новые челленджи на основе ваших ответов...'
+                active: this.t('empty_active'),
+                completed: this.t('empty_completed'),
+                suggested: this.t('empty_suggested')
             };
-            list.innerHTML = `<div class="empty-state"><span class="empty-icon">${tab === 'completed' ? '\uD83C\uDFC6' : '\uD83C\uDF31'}</span><p>${msgs[tab]}</p></div>`;
+            list.innerHTML = '<div class="empty-state"><span class="empty-icon">' + (tab === 'completed' ? '\uD83C\uDFC6' : '\uD83C\uDF31') + '</span><p>' + msgs[tab] + '</p></div>';
             return;
         }
 
         list.innerHTML = filtered.map(ch => {
             const pct = (ch.progress / ch.total) * 100;
-            const diff = { easy: '\uD83D\uDFE2 Лёгкий', medium: '\uD83D\uDFE1 Средний', hard: '\uD83D\uDFE0 Сложный' }[ch.difficulty];
-            const assigned = { both: 'Для обоих', user: 'Для вас', partner: `Для ${partnerName}` }[ch.assignedTo];
+            const diff = { easy: '\uD83D\uDFE2 ' + this.t('diff_easy'), medium: '\uD83D\uDFE1 ' + this.t('diff_medium'), hard: '\uD83D\uDFE0 ' + this.t('diff_hard') }[ch.difficulty];
+            const assigned = { both: this.t('assigned_both'), user: this.t('assigned_user'), partner: this.t('assigned_partner_prefix') + ' ' + partnerName }[ch.assignedTo];
+            const title = this.ct(ch, 'title');
+            const desc = this.ct(ch, 'desc') || this.ct(ch, 'description');
+            const dur = this.ct(ch, 'duration');
 
             return `
                 <div class="challenge-card" onclick="app.showChallengeDetail('${ch.id}')">
                     <div class="challenge-card-header">
                         <span class="challenge-icon-large">${ch.icon}</span>
                         <div>
-                            <h3>${ch.title}</h3>
-                            <div class="challenge-meta"><span>${diff}</span><span>\u00B7</span><span>${ch.duration}</span><span>\u00B7</span><span>${assigned}</span></div>
+                            <h3>${title}</h3>
+                            <div class="challenge-meta"><span>${diff}</span><span>\u00B7</span><span>${dur}</span><span>\u00B7</span><span>${assigned}</span></div>
                         </div>
                     </div>
-                    <p class="challenge-desc">${ch.description}</p>
+                    <p class="challenge-desc">${desc}</p>
                     ${ch.status !== 'suggested' ? `
                         <div class="challenge-progress">
                             <div class="progress-bar"><div class="progress-fill ${ch.status === 'completed' ? 'complete' : ''}" style="width:${pct}%"></div></div>
-                            <span class="progress-label">${ch.progress} из ${ch.total}</span>
+                            <span class="progress-label">${ch.progress} / ${ch.total}</span>
                         </div>
                     ` : `
-                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); app.acceptChallenge('${ch.id}')">Принять челлендж</button>
+                        <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); app.acceptChallenge('${ch.id}')">${this.t('btn_accept')}</button>
                     `}
                 </div>`;
         }).join('');
@@ -672,21 +866,24 @@ const app = {
         const ch = this.state.challenges.find(c => c.id === id);
         if (!ch) return;
         const pct = (ch.progress / ch.total) * 100;
+        const title = this.ct(ch, 'title');
+        const desc = this.ct(ch, 'desc') || this.ct(ch, 'description');
+        const dur = this.ct(ch, 'duration');
         this.showModal(`
             <div class="challenge-detail">
                 <div class="challenge-detail-icon">${ch.icon}</div>
-                <h2>${ch.title}</h2>
-                <p>${ch.description}</p>
+                <h2>${title}</h2>
+                <p>${desc}</p>
                 <div class="challenge-detail-meta">
-                    <div class="meta-item"><span class="meta-label">Длительность</span><span class="meta-value">${ch.duration}</span></div>
-                    <div class="meta-item"><span class="meta-label">Прогресс</span><span class="meta-value">${ch.progress}/${ch.total}</span></div>
+                    <div class="meta-item"><span class="meta-label">${this.t('duration_label')}</span><span class="meta-value">${dur}</span></div>
+                    <div class="meta-item"><span class="meta-label">${this.t('progress_label')}</span><span class="meta-value">${ch.progress}/${ch.total}</span></div>
                 </div>
                 <div class="challenge-progress" style="margin-top:16px">
                     <div class="progress-bar"><div class="progress-fill ${ch.status === 'completed' ? 'complete' : ''}" style="width:${pct}%"></div></div>
                 </div>
-                ${ch.status === 'active' ? `<button class="btn btn-primary btn-large" style="margin-top:20px" onclick="app.markChallengeDay('${ch.id}')">\u2705 Отметить выполнение</button>` : ''}
-                ${ch.status === 'suggested' ? `<button class="btn btn-primary btn-large" style="margin-top:20px" onclick="app.acceptChallenge('${ch.id}')">Принять челлендж</button>` : ''}
-                ${ch.status === 'completed' ? `<div style="margin-top:20px;color:var(--secondary);font-weight:600">\uD83C\uDFC6 Челлендж завершён!</div>` : ''}
+                ${ch.status === 'active' ? '<button class="btn btn-primary btn-large" style="margin-top:20px" onclick="app.markChallengeDay(\'' + ch.id + '\')">\u2705 ' + this.t('btn_mark_done') + '</button>' : ''}
+                ${ch.status === 'suggested' ? '<button class="btn btn-primary btn-large" style="margin-top:20px" onclick="app.acceptChallenge(\'' + ch.id + '\')">' + this.t('btn_accept') + '</button>' : ''}
+                ${ch.status === 'completed' ? '<div style="margin-top:20px;color:var(--secondary);font-weight:600">\uD83C\uDFC6 ' + this.t('challenge_done') + '</div>' : ''}
             </div>
         `);
     },
@@ -700,8 +897,8 @@ const app = {
                 ch.progress >= ch.total ? 'challenge_complete' : 'challenge_progress',
                 ch.progress >= ch.total ? '\uD83C\uDFC6' : '\u2705',
                 ch.progress >= ch.total
-                    ? `Челлендж «${ch.title}» завершён!`
-                    : `Выполнен день ${ch.progress} в челлендже «${ch.title}»`
+                    ? '\uD83C\uDFC6 ' + this.ct(ch, 'title') + ' — ' + this.t('challenge_done')
+                    : '\u2705 ' + this.ct(ch, 'title') + ' (' + ch.progress + '/' + ch.total + ')'
             );
             this.save();
         }
@@ -714,7 +911,7 @@ const app = {
         const ch = this.state.challenges.find(c => c.id === id);
         if (ch) {
             ch.status = 'active';
-            this.addActivity('new_challenge', '\uD83C\uDF1F', `Принят челлендж: «${ch.title}»`);
+            this.addActivity('new_challenge', '\uD83C\uDF1F', '\uD83C\uDF1F ' + this.t('btn_accept') + ': ' + this.ct(ch, 'title'));
             this.save();
         }
         this.closeModal();
@@ -722,12 +919,22 @@ const app = {
     },
 
     addActivity(type, icon, text) {
-        this.state.activity.unshift({ type, icon, text, time: 'Только что' });
+        this.state.activity.unshift({ type, icon, text, time: this.t('just_now') });
         if (this.state.activity.length > 20) this.state.activity.pop();
     },
 
     // ── AI Mediator Chat ──────────────────────────────────
     renderChat() {
+        this.applyTranslations();
+        // Ensure welcome message exists
+        if (this.state.chat.messages.length === 0) {
+            this.state.chat.messages.push({
+                role: 'assistant',
+                text: this.t('chat_welcome'),
+                time: this.t('chat_time_now')
+            });
+        }
+
         const messagesEl = document.getElementById('chat-messages');
         const avatarSvg = '<div class="msg-avatar"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="var(--primary-light)"/><circle cx="11" cy="13" r="1.5" fill="var(--primary)"/><circle cx="21" cy="13" r="1.5" fill="var(--primary)"/><path d="M11 20 Q16 24 21 20" stroke="var(--primary)" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></div>';
 
@@ -750,12 +957,11 @@ const app = {
         }
         messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        // Show/hide suggestions
         const sugEl = document.getElementById('chat-suggestions');
         if (sugEl) sugEl.style.display = this.state.chat.messages.length <= 1 ? 'flex' : 'none';
     },
 
-    sendMessage() {
+    async sendMessage() {
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (!text || this.state.chat.isTyping) return;
@@ -763,26 +969,59 @@ const app = {
         this.state.chat.messages.push({ role: 'user', text, time: this.getCurrentTime() });
         input.value = '';
         input.style.height = 'auto';
-        this.renderChat();
-
         this.state.chat.isTyping = true;
         this.renderChat();
 
-        const delay = 1200 + Math.random() * 1500;
-        setTimeout(() => {
-            this.state.chat.isTyping = false;
-            const response = this.generateAIResponse(text);
-            this.state.chat.messages.push({ role: 'assistant', text: response.text, time: this.getCurrentTime() });
+        const analysis = this.state.analysis || this.getDefaultAnalysis();
+        const userContext = {
+            language: (typeof getLang === 'function') ? getLang() : 'en',
+            name: this.state.user.name,
+            partnerName: this.state.user.partnerName,
+            duration: this.state.user.duration,
+            livingTogether: this.state.user.livingTogether,
+            harmonyScore: analysis.harmony,
+            growthAreas: analysis.growth ? analysis.growth.join(', ') : '',
+            strengths: analysis.strengths ? analysis.strengths.join(', ') : '',
+            questionnaireSummary: (typeof AIService !== 'undefined' && AIService.buildQuestionnaireSummary)
+                ? AIService.buildQuestionnaireSummary(this.state.onboarding.answers, analysis.catScores)
+                : ''
+        };
 
-            // If AI generated a challenge, add it
-            if (response.challenge) {
-                this.state.challenges.push(response.challenge);
-                this.addActivity('new_challenge', '\uD83C\uDF1F', `AI создал челлендж: «${response.challenge.title}»`);
-            }
+        // Try AI service (backend proxy or direct API)
+        let result = null;
+        if (typeof AIService !== 'undefined') {
+            result = await AIService.chat(
+                this.state.chat.messages.slice(0, -1).concat([{ role: 'user', text }]),
+                userContext
+            );
+        }
 
-            this.renderChat();
-            this.save();
-        }, delay);
+        // If AI returned null (not configured) or no result, use fallback
+        if (!result) {
+            const delay = 800 + Math.random() * 1000;
+            setTimeout(() => {
+                this.state.chat.isTyping = false;
+                const response = this.generateAIResponse(text);
+                this.state.chat.messages.push({ role: 'assistant', text: response.text, time: this.getCurrentTime() });
+                if (response.challenge) {
+                    this.state.challenges.push(response.challenge);
+                    this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + response.challenge.title);
+                }
+                this.renderChat();
+                this.save();
+            }, delay);
+            return;
+        }
+
+        this.state.chat.isTyping = false;
+        this.state.chat.messages.push({ role: 'assistant', text: result.text, time: this.getCurrentTime() });
+        if (result.challenge) {
+            this.state.challenges.push(result.challenge);
+            this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + result.challenge.title);
+            this.showNotification('\uD83C\uDFAF ' + result.challenge.title);
+        }
+        this.renderChat();
+        this.save();
     },
 
     sendSuggestion(btn) {
@@ -790,128 +1029,108 @@ const app = {
         this.sendMessage();
     },
 
+    // ── Translated fallback response (when no AI backend available) ──
+    _fbText(key, pn) {
+        return this.t(key).replace(/\{partner\}/g, pn);
+    },
+
     generateAIResponse(userMessage) {
         const lower = userMessage.toLowerCase();
-        const pn = this.state.user.partnerName || 'партнёр';
-        const answers = this.state.onboarding.answers;
-        const ctx = this.state.chat.context;
-        let challenge = null;
+        const pn = this.state.user.partnerName || this.t('setup_partner_label');
 
-        // Track conversation context
-        const topics = [];
-        if (/ванн|волос|чистот|убира|порядо|грязн/.test(lower)) topics.push('household');
-        if (/посуд|кухн|готов/.test(lower)) topics.push('dishes');
-        if (/телефон|экран|гаджет/.test(lower)) topics.push('phone');
-        if (/денег|деньги|трат|финанс|купи/.test(lower)) topics.push('finances');
-        if (/секс|интим|близост|прикоснов|обним/.test(lower)) topics.push('intimacy');
-        if (/вним|любо|чувств|эмоц|скуч/.test(lower)) topics.push('emotional');
-        if (/родител|мам|пап|свекр|тёщ|семь/.test(lower)) topics.push('family');
-        if (/друз|компани|ревну/.test(lower)) topics.push('friends');
-        if (/врем|вместе|свидан|гуля|прогул/.test(lower)) topics.push('quality_time');
-        if (/работ|карьер|устал|стресс/.test(lower)) topics.push('work');
-        if (/обижа|молч|ссор|конфликт|крич/.test(lower)) topics.push('conflict');
-        this.state.chat.context = [...ctx, ...topics].slice(-10);
-
-        // ── Pattern matching with rich responses ──
-
-        // Household complaints
-        if (/ванн|волос/.test(lower)) {
-            challenge = this.createChallengeFromChat('Чистая ванная', 'После каждого использования ванной: убрать волосы, протереть раковину, повесить полотенце.', 'household', '\u2728', 7, 'partner');
-            return { text: `Понимаю — волосы в ванной это классика микроконфликтов в парах. Мелочь, но накапливается.\n\nЯ уже создал челлендж «Чистая ванная» для ${pn}. Он/она получит его как рекомендацию для улучшения комфорта в доме — без упоминания жалобы.\n\nЧеллендж рассчитан на 7 дней. Загляните в раздел «Челленджи», чтобы следить за прогрессом.`, challenge };
+        // Bathroom / cleaning
+        if (/bathroom|hair|clean|ванн|волос|чистот|мыть|убира/i.test(lower)) {
+            return {
+                text: this._fbText('fb_bathroom', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_clean_bathroom'), this.t('fb_ch_clean_bathroom_desc'), 'household', '\u2728', 7, 'partner')
+            };
+        }
+        // Dishes
+        if (/dish|dirty|plate|посуд|грязн|тарелк/i.test(lower)) {
+            return {
+                text: this._fbText('fb_dishes', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_clean_sink'), this.t('fb_ch_clean_sink_desc'), 'household', '\uD83E\uDDFD', 5, 'partner')
+            };
+        }
+        // Phone / screen time
+        if (/phone|screen|gadget|телефон|экран|гаджет|смартфон/i.test(lower)) {
+            return {
+                text: this._fbText('fb_phone', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_screen_free'), this.t('fb_ch_screen_free_desc'), 'quality_time', '\uD83D\uDCF5', 5, 'both')
+            };
+        }
+        // Feeling ignored
+        if (/ignor|notice|attention|не.*заме|игнор|невидим|не слуш/i.test(lower)) {
+            return {
+                text: this._fbText('fb_ignore', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_daily_checkin'), this.t('fb_ch_daily_checkin_desc'), 'emotional', '\uD83D\uDC96', 7, 'partner')
+            };
+        }
+        // Boredom / routine
+        if (/boring|routine|monoton|скуч|однообраз|рутин|надоел/i.test(lower)) {
+            return {
+                text: this._fbText('fb_boring', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_surprise_week'), this.t('fb_ch_surprise_week_desc'), 'quality_time', '\uD83C\uDF39', 3, 'both')
+            };
+        }
+        // Money / finances
+        if (/money|financ|budget|spend|денег|деньги|финанс|бюджет|трат/i.test(lower)) {
+            return {
+                text: this._fbText('fb_money', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_finance_evening'), this.t('fb_ch_finance_evening_desc'), 'finances', '\uD83D\uDCB0', 1, 'both')
+            };
+        }
+        // Food / cooking
+        if (/food|cook|eat|meal|recipe|diet|еда|готов|куша|блюд|рецепт|продукт|кухн|сельдер|вкус/i.test(lower)) {
+            return {
+                text: this._fbText('fb_food', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_cooking_together'), this.t('fb_ch_cooking_together_desc'), 'household', '\uD83C\uDF73', 3, 'both')
+            };
+        }
+        // Hard to talk about / don't know how to say
+        if (/don'?t know how|hard to (say|tell|talk)|can'?t (say|tell)|не знаю как сказ|сложно сказ|трудно говор|не могу сказ|боюсь сказ/i.test(lower)) {
+            return {
+                text: this._fbText('fb_talk_hard', pn),
+                challenge: null
+            };
+        }
+        // Conflict / fighting
+        if (/fight|conflict|argue|yell|ссор|конфликт|ругаемся|крич|скандал/i.test(lower)) {
+            return { text: this._fbText('fb_conflict', pn), challenge: null };
+        }
+        // Intimacy / sex
+        if (/sex|intima|близост|секс|интим|постел|нежност/i.test(lower)) {
+            return {
+                text: this._fbText('fb_sex', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_reconnect'), this.t('fb_ch_reconnect_desc'), 'intimacy', '\uD83D\uDC95', 7, 'both')
+            };
+        }
+        // Jealousy / trust
+        if (/jealous|trust|suspicious|ревн|довер|подозр|измен/i.test(lower)) {
+            return {
+                text: this._fbText('fb_jealousy', pn),
+                challenge: this.createChallengeFromChat(this.t('fb_ch_trust_building'), this.t('fb_ch_trust_building_desc'), 'emotional', '\uD83D\uDD12', 7, 'both')
+            };
+        }
+        // Thank you / gratitude
+        if (/thank|grateful|appreciate|спасибо|благодар|ценю/i.test(lower)) {
+            return { text: this._fbText('fb_thanks', pn), challenge: null };
         }
 
-        if (/посуд|грязн.*тарелк/.test(lower)) {
-            challenge = this.createChallengeFromChat('Правило чистой раковины', 'Мойте посуду сразу после еды. Если нет сил — хотя бы замочите. Цель: ни одной грязной тарелки перед сном.', 'household', '\uD83E\uDDFD', 5, 'partner');
-            return { text: `Грязная посуда — один из топ-3 бытовых раздражителей в парах. Это не мелочь, когда происходит каждый день.\n\nЯ подготовил челлендж «Правило чистой раковины» — ${pn} получит конкретные простые правила на 5 дней.\n\nВажно: челлендж подан как забота о совместном пространстве, а не как критика. Так он воспринимается намного лучше.`, challenge };
-        }
-
-        if (/телефон|экран|гаджет|сидит.*телефон/.test(lower)) {
-            challenge = this.createChallengeFromChat('Вечера без экранов', 'Каждый вечер с 20:00 до 21:00 — телефоны в другую комнату. Поговорите, поиграйте или просто побудьте рядом.', 'quality_time', '\uD83D\uDCF5', 5, 'both');
-            return { text: `«Ты всё время в телефоне» — одна из самых частых фраз в современных парах. И за ней стоит потребность во внимании.\n\nЯ создал челлендж «Вечера без экранов» — для вас обоих. Это будет час без телефонов каждый вечер. Начать проще, если это правило для двоих, а не претензия к одному.\n\nПосмотрите в «Челленджах» — там все детали.`, challenge };
-        }
-
-        // Emotional needs
-        if (/не.*заме[чт]а|игнорир|не.*вним|невидим/.test(lower)) {
-            challenge = this.createChallengeFromChat('Ежедневный чек-ин', 'Каждый день спрашивайте партнёра: «Как ты сегодня? Что чувствуешь?» — и слушайте ответ без советов.', 'emotional', '\uD83D\uDC96', 7, 'partner');
-            return { text: `Чувствовать себя незамеченным — это больно. Ваши чувства абсолютно валидны.\n\nЧасто партнёры не замечают не потому что им всё равно, а потому что по-другому считывают сигналы. ${pn} может искренне не видеть то, что для вас очевидно.\n\nЯ создал челлендж «Ежедневный чек-ин» — ${pn} будет спрашивать каждый день, как вы себя чувствуете. Это простое действие, но оно строит привычку внимательности.\n\nХотите обсудить это подробнее?`, challenge };
-        }
-
-        if (/скуча|однообраз|рутин|скучн|нет.*романтик/.test(lower)) {
-            challenge = this.createChallengeFromChat('Сюрприз-неделя', 'Каждые 2 дня организуйте маленький сюрприз: необычный ужин, записка, неожиданная прогулка.', 'quality_time', '\uD83C\uDF39', 3, 'both');
-            return { text: `Рутина — враг отношений, но и их естественная часть. Хорошая новость: небольшие сюрпризы ломают шаблон лучше, чем грандиозные жесты.\n\nЯ подготовил «Сюрприз-неделю» для вас обоих — 3 маленьких неожиданности за неделю. Это вернёт элемент непредсказуемости.\n\nА пока расскажите: что вам обоим нравилось делать в начале отношений?`, challenge };
-        }
-
-        if (/люб|не.*говор.*люблю|не.*слыш.*люблю/.test(lower) && /не|мало|редко|хоч/.test(lower)) {
-            return { text: `Потребность слышать «я тебя люблю» — это нормально и важно. Некоторые люди выражают любовь через действия, а не слова, и могут искренне не понимать, что вам нужно это слышать.\n\nМогу помочь двумя способами:\n\n1. Создать мягкий челлендж для ${pn} на словесные выражения чувств\n2. Помочь вам самим сказать ${pn}, что вам это важно\n\nЧто ближе?`, challenge: null };
-        }
-
-        // Financial concerns
-        if (/денег|деньги|трат|финанс|бюджет/.test(lower)) {
-            challenge = this.createChallengeFromChat('Финансовый вечер', 'Устройте спокойный разговор о финансах. Правила: без упрёков, фокус на общих целях, обсуждение одного конкретного вопроса.', 'finances', '\uD83D\uDCB0', 1, 'both');
-            return { text: `Финансы — одна из самых сложных тем для пар. Здесь часто сталкиваются разные ценности и привычки из родительских семей.\n\nГлавное правило: обсуждать деньги нужно в спокойной обстановке, а не в момент конфликта.\n\nЯ создал «Финансовый вечер» — структурированный разговор с правилами, которые помогают обсуждать деньги без ссор. Загляните в раздел челленджей.\n\nЧто именно вас беспокоит — траты, накопления или что-то другое?`, challenge };
-        }
-
-        // Family issues
-        if (/родител|мам|пап|свекр|тёщ|семь.*партнёр/.test(lower)) {
-            return { text: `Отношения с семьями партнёров — это всегда тонкая территория. Здесь важен единый фронт: вы — команда, и ваши решения принимаете вы.\n\nНесколько мыслей:\n\n\u2022 Границы с семьями должны устанавливать сами партнёры (каждый со своей)\n\u2022 Никогда не критикуйте семью партнёра — даже если он/она сам жалуется\n\u2022 Обсудите заранее: в каких вопросах мнение родителей допустимо, а в каких — нет\n\nХотите, чтобы я создал челлендж на установление границ?`, challenge: null };
-        }
-
-        // Conflict resolution
-        if (/ссор|крич|конфликт|ругаемся|скандал/.test(lower)) {
-            return { text: `Конфликты в парах неизбежны, но разрушительным может быть не сам конфликт, а то, КАК вы его ведёте.\n\nИсследования Готтмана показывают «четырёх всадников» разрушения отношений:\n\n1. Критика (нападение на личность, а не на поведение)\n2. Защита (контратака вместо слушания)\n3. Презрение (сарказм, закатывание глаз)\n4. Отстранение (молчание, уход)\n\nРасскажите подробнее: как обычно начинается ваш конфликт? Кто первый начинает, и чем обычно заканчивается?`, challenge: null };
-        }
-
-        // Intimacy
-        if (/секс|интим|близост|не.*хоч.*меня/.test(lower)) {
-            return { text: `Спасибо за доверие — это действительно интимная тема, и многим сложно об этом говорить.\n\nВажно помнить: различия в потребностях — это нормально, и они меняются со временем. Стресс, усталость, гормоны — всё влияет.\n\nЯ могу помочь:\n\n1. Создать мягкий челлендж на увеличение несексуальной близости (объятия, прикосновения) — это часто восстанавливает и сексуальное желание\n2. Помочь найти слова, чтобы обсудить это с ${pn}\n\nВсё, что вы скажете, полностью конфиденциально. Что вас волнует больше всего?`, challenge: null };
-        }
-
-        // Appreciation / positive
-        if (/спасибо|благодар|молодец|хорош|нрави|ценю/.test(lower)) {
-            return { text: `Как приятно это слышать! Благодарность — мощнейший инструмент в отношениях.\n\nИсследования показывают, что пары, которые регулярно выражают благодарность, на 50% реже разводятся.\n\nХотите отправить ${pn} тёплое уведомление? Или я могу создать челлендж «Благодарность перед сном» для вас обоих — это потрясающе меняет атмосферу.`, challenge: null };
-        }
-
-        // Agreement / confirmation
-        if (/^(да|давай|хорошо|ок|конечно|хочу|запус|создай|нужн)/.test(lower) && this.state.chat.context.length > 0) {
-            const lastTopic = this.state.chat.context[this.state.chat.context.length - 1];
-            return { text: `Отлично! Я подготовлю рекомендации на основе нашего разговора.\n\nВот что произойдёт:\n\u2022 ${pn} получит рекомендацию в мягкой форме\n\u2022 Вы сможете отслеживать прогресс в разделе «Челленджи»\n\u2022 В конце оба оцените результат\n\nМежду тем, есть ли ещё что-то, о чём вы хотели бы поговорить?`, challenge: null };
-        }
-
-        // Work/stress
-        if (/работ|устал|стресс|выгора|перегруз/.test(lower)) {
-            return { text: `Рабочий стресс — один из главных врагов отношений. Когда вы устали, снижается терпение и эмпатия.\n\nНесколько идей:\n\n\u2022 «Правило 20 минут» — после работы дайте себе 20 минут тишины перед общением\n\u2022 Договоритесь о «сигналах усталости» — чтобы партнёр понимал, когда не время для важных разговоров\n\u2022 Один вечер в неделю — только отдых, никаких рабочих тем\n\nЧто из этого откликается? Могу создать челлендж.`, challenge: null };
-        }
-
-        // Discussion / general talk
-        if (/отношени|обсудить|поговорить|разобрать/.test(lower)) {
-            return { text: `Конечно, давайте поговорим. Я здесь, чтобы помочь вам разобраться в чувствах.\n\nМожете начать с того, что вас волнует больше всего прямо сейчас? Не обязательно формулировать идеально — просто расскажите как есть.\n\nЯ замечу паттерны и помогу увидеть ситуацию с разных сторон.`, challenge: null };
-        }
-
-        // Hard to say
-        if (/сложно.*сказать|не могу.*сказать|стесня|бою.*сказать/.test(lower)) {
-            return { text: `Это нормально — многие вещи сложно произнести вслух. Именно для этого я здесь.\n\nВы можете написать мне всё, что хотели бы сказать ${pn}, но не решаетесь. Я помогу:\n\n1. Разобраться в ваших чувствах\n2. Найти правильные слова\n3. Или передать пожелание через мягкий челлендж\n\nЧто бы вы хотели сказать?`, challenge: null };
-        }
-
-        // Generic complaint
-        if (/беспокоит|раздражает|бесит|напрягает|достал|надоел/.test(lower)) {
-            return { text: `Я слышу, что это вас беспокоит. Спасибо, что доверяете мне.\n\nЧтобы помочь максимально эффективно, расскажите подробнее:\n\n\u2022 Как давно это происходит?\n\u2022 Как часто?\n\u2022 Говорили ли вы об этом с ${pn}?\n\nЯ не буду передавать ваши слова напрямую. Вместо этого я создам мягкий челлендж, который поможет улучшить ситуацию естественным образом.`, challenge: null };
-        }
-
-        // Default response with personalization
+        // Default response
+        let txt = this._fbText('fb_default', pn);
         const analysis = this.state.analysis;
-        let extra = '';
-        if (analysis && analysis.growth.length > 0) {
-            extra = `\n\nКстати, по вашей анкете я вижу зоны роста: ${analysis.growth.join(', ')}. Хотите обсудить что-то из этого?`;
+        if (analysis && analysis.growth && analysis.growth.length > 0) {
+            txt += this.t('fb_default_extra').replace('{areas}', analysis.growth.join(', '));
         }
-
-        return { text: `Спасибо, что делитесь этим. Я анализирую ваши слова вместе с данными анкеты.\n\nМогу предложить:\n\n1. \uD83D\uDCAC Обсудить ситуацию подробнее\n2. \uD83C\uDFAF Создать мягкий челлендж для ${pn}\n3. \uD83D\uDCA1 Дать рекомендацию для вас обоих\n4. \u2764\uFE0F Отправить ${pn} что-то приятное\n\nЧто вам ближе?${extra}`, challenge: null };
+        return { text: txt, challenge: null };
     },
 
     createChallengeFromChat(title, desc, category, icon, total, assignedTo) {
         return {
             id: 'ch_' + Date.now(),
             title, description: desc, category, icon,
-            duration: total === 1 ? 'Однократно' : `${total} дней`,
+            duration: total === 1 ? 'One-time' : total + ' days',
             difficulty: total <= 3 ? 'easy' : 'medium',
             progress: 0, total, status: 'active', assignedTo
         };
@@ -929,83 +1148,68 @@ const app = {
 
     // ── Insights ──────────────────────────────────────────
     renderInsights() {
+        this.applyTranslations();
         const analysis = this.state.analysis || this.getDefaultAnalysis();
         const cats = analysis.catScores;
 
-        // Dynamic strengths / growth
         const strengthsEl = document.getElementById('strengths-list');
         const growthEl = document.getElementById('growth-list');
-        if (strengthsEl) strengthsEl.innerHTML = analysis.strengths.map(s => `<li class="positive">${s}</li>`).join('');
-        if (growthEl) growthEl.innerHTML = analysis.growth.map(g => `<li class="growth">${g}</li>`).join('');
+        if (strengthsEl) strengthsEl.innerHTML = analysis.strengths.map(s => '<li class="positive">' + s + '</li>').join('');
+        if (growthEl) growthEl.innerHTML = analysis.growth.map(g => '<li class="growth">' + g + '</li>').join('');
 
-        // Compatibility bars
-        const labels = {
-            emotional: 'Эмоциональная связь', communication: 'Коммуникация',
-            household: 'Быт', intimacy: 'Близость', finances: 'Финансы',
-            quality_time: 'Время вместе', family: 'Семья', values: 'Ценности', habits: 'Привычки'
-        };
         const barsEl = document.getElementById('compatibility-bars');
         barsEl.innerHTML = Object.entries(cats).map(([key, val]) => {
-            const color = val >= 80 ? '#4ade80' : val >= 65 ? '#facc15' : '#fb923c';
-            return `<div class="compat-row">
-                <span class="compat-name">${labels[key] || key}</span>
-                <div class="compat-bar-track"><div class="compat-bar-fill" style="width:${val}%;background:${color}"></div></div>
-                <span class="compat-value">${val}%</span>
-            </div>`;
+            const color = val >= 80 ? '#6BBF8A' : val >= 65 ? '#E5C76B' : '#D4A574';
+            return '<div class="compat-row"><span class="compat-name">' + this.t('cat_' + key) + '</span><div class="compat-bar-track"><div class="compat-bar-fill" style="width:' + val + '%;background:' + color + '"></div></div><span class="compat-value">' + val + '%</span></div>';
         }).join('');
 
-        // Progress chart
         const chartEl = document.getElementById('progress-chart');
         const base = Math.max(50, analysis.harmony - 15);
-        const weeks = ['Нед 1', 'Нед 2', 'Нед 3', 'Сейчас'];
+        const weeks = [this.t('week_1'), this.t('week_2'), this.t('week_3'), this.t('week_now')];
         const vals = [base, base + 5, base + 9, analysis.harmony];
-        chartEl.innerHTML = `<div class="bar-chart">${weeks.map((w, i) => `
-            <div class="bar-col"><div class="bar" style="height:${vals[i]}%"><span class="bar-value">${vals[i]}</span></div><span class="bar-label">${w}</span></div>
-        `).join('')}</div>`;
+        chartEl.innerHTML = '<div class="bar-chart">' + weeks.map((w, i) =>
+            '<div class="bar-col"><div class="bar" style="height:' + vals[i] + '%"><span class="bar-value">' + vals[i] + '</span></div><span class="bar-label">' + w + '</span></div>'
+        ).join('') + '</div>';
 
-        // Recommendations
         const recs = analysis.recommendations || AI_RECOMMENDATIONS;
         const recsEl = document.getElementById('ai-recommendations');
-        recsEl.innerHTML = recs.map(rec => `
-            <div class="recommendation-card priority-${rec.priority}"><h4>${rec.title}</h4><p>${rec.text}</p></div>
-        `).join('');
+        recsEl.innerHTML = recs.map(rec =>
+            '<div class="recommendation-card priority-' + rec.priority + '"><h4>' + this.ct(rec, 'title') + '</h4><p>' + this.ct(rec, 'text') + '</p></div>'
+        ).join('');
     },
 
     // ── Wishes ────────────────────────────────────────────
     renderWishes() {
+        this.applyTranslations();
         const listEl = document.getElementById('wishes-list');
         if (this.state.wishes.length === 0) {
-            listEl.innerHTML = '<div class="empty-state"><span class="empty-icon">\u2B50</span><p>У вас пока нет желаний. Нажмите + чтобы добавить первое.</p></div>';
+            listEl.innerHTML = '<div class="empty-state"><span class="empty-icon">\u2B50</span><p>' + this.t('wishes_empty') + '</p></div>';
             return;
         }
         listEl.innerHTML = this.state.wishes.map(w => {
-            const label = { active: 'Активно', in_progress: 'AI работает над этим', fulfilled: 'Исполнено' }[w.status] || 'Активно';
-            return `<div class="wish-card">
-                <p class="wish-text">${w.text}</p>
-                <div class="wish-meta">
-                    <span class="wish-status ${w.status}">${label}</span>
-                    <span class="wish-date">${w.createdAt}</span>
-                </div>
-            </div>`;
+            const label = { active: this.t('wish_active'), in_progress: this.t('wish_in_progress'), fulfilled: this.t('wish_fulfilled') }[w.status] || this.t('wish_active');
+            const wText = this.ct(w, 'text');
+            const wDate = this.ct(w, 'createdAt');
+            return '<div class="wish-card"><p class="wish-text">' + wText + '</p><div class="wish-meta"><span class="wish-status ' + w.status + '">' + label + '</span><span class="wish-date">' + wDate + '</span></div></div>';
         }).join('');
     },
 
     showAddWishModal() {
         this.showModal(`
-            <h2>Новое желание</h2>
-            <p class="modal-subtitle">Расскажите, чего бы вы хотели от партнёра. AI аккуратно поработает над этим.</p>
-            <textarea id="wish-input" class="answer-textarea" placeholder="Например: хочу, чтобы чаще обнимал/-а меня без повода..." rows="4"></textarea>
+            <h2>${this.t('add_wish_title')}</h2>
+            <p class="modal-subtitle">${this.t('add_wish_subtitle')}</p>
+            <textarea id="wish-input" class="answer-textarea" placeholder="${this.t('wish_placeholder')}" rows="4"></textarea>
             <div class="modal-category-select">
-                <label>Категория:</label>
+                <label>${this.t('wish_cat_label')}</label>
                 <select id="wish-category">
-                    <option value="emotional">Эмоции</option>
-                    <option value="household">Быт</option>
-                    <option value="quality_time">Время вместе</option>
-                    <option value="intimacy">Близость</option>
-                    <option value="communication">Общение</option>
+                    <option value="emotional">${this.t('wishcat_emotional')}</option>
+                    <option value="household">${this.t('wishcat_household')}</option>
+                    <option value="quality_time">${this.t('wishcat_quality_time')}</option>
+                    <option value="intimacy">${this.t('wishcat_intimacy')}</option>
+                    <option value="communication">${this.t('wishcat_communication')}</option>
                 </select>
             </div>
-            <button class="btn btn-primary btn-large" onclick="app.addWish()">Отправить желание</button>
+            <button class="btn btn-primary btn-large" onclick="app.addWish()">${this.t('btn_send_wish')}</button>
         `);
     },
 
@@ -1013,32 +1217,32 @@ const app = {
         const text = document.getElementById('wish-input').value.trim();
         const category = document.getElementById('wish-category').value;
         if (!text) return;
-        this.state.wishes.unshift({ id: 'w' + Date.now(), text, category, status: 'active', createdAt: 'Только что' });
-        this.addActivity('wish', '\u2B50', 'Добавлено новое желание');
+        this.state.wishes.unshift({ id: 'w' + Date.now(), text, category, status: 'active', createdAt: this.t('just_now') });
+        this.addActivity('wish', '\u2B50', this.t('activity_wish_added'));
         this.save();
         this.closeModal();
         this.renderWishes();
-        this.showNotification('\u2B50 Желание добавлено! AI начнёт работать над ним');
+        this.showNotification('\u2B50 ' + this.t('wish_added_notif'));
     },
 
     // ── Profile ───────────────────────────────────────────
     renderProfile() {
-        const name = this.state.user.name || 'Аня';
-        const partnerName = this.state.user.partnerName || 'Миша';
+        this.applyTranslations();
+        const name = this.state.user.name || 'User';
+        const partnerName = this.state.user.partnerName || 'Partner';
         const analysis = this.state.analysis || this.getDefaultAnalysis();
 
         document.getElementById('profile-name').textContent = name;
         document.getElementById('profile-partner-name').textContent = partnerName;
         document.querySelector('.profile-avatar-large').textContent = name.charAt(0).toUpperCase();
 
-        // Dynamic stats
         const completed = this.state.challenges.filter(c => c.status === 'completed').length;
         const statsEl = document.getElementById('profile-stats');
         if (statsEl) {
             statsEl.innerHTML = `
-                <div class="stat"><span class="stat-value">${this.state.challenges.length}</span><span class="stat-label">челленджей</span></div>
-                <div class="stat"><span class="stat-value">${completed}</span><span class="stat-label">завершено</span></div>
-                <div class="stat"><span class="stat-value">${analysis.harmony}%</span><span class="stat-label">гармония</span></div>
+                <div class="stat"><span class="stat-value">${this.state.challenges.length}</span><span class="stat-label">${this.t('profile_challenges')}</span></div>
+                <div class="stat"><span class="stat-value">${completed}</span><span class="stat-label">${this.t('profile_completed')}</span></div>
+                <div class="stat"><span class="stat-value">${analysis.harmony}%</span><span class="stat-label">${this.t('profile_harmony')}</span></div>
             `;
         }
     },
@@ -1046,51 +1250,128 @@ const app = {
     showInvitePartner() {
         const code = this.state.inviteCode || 'KOOPLE-A7X9';
         this.showModal(`
-            <h2>Пригласить партнёра</h2>
-            <p>Отправьте этот код партнёру, чтобы он/она смог присоединиться</p>
+            <h2>${this.t('invite_title')}</h2>
+            <p>${this.t('invite_text')}</p>
             <div class="invite-code-box">
                 <span class="invite-code">${code}</span>
-                <button class="btn-copy" onclick="app.copyInviteCode()">Копировать</button>
+                <button class="btn-copy" onclick="app.copyInviteCode()">${this.t('btn_copy')}</button>
             </div>
-            <button class="btn btn-secondary btn-large" onclick="app.shareInvite()">Отправить приглашение</button>
+            <button class="btn btn-secondary btn-large" onclick="app.shareInvite()">${this.t('btn_share_invite')}</button>
         `);
+    },
+
+    showLanguageModal() {
+        const currentCode = (typeof getLang === 'function') ? getLang() : 'en';
+        const langs = (typeof LANGUAGES !== 'undefined') ? LANGUAGES : [{ code: 'en', name: 'English', flag: '' }];
+        const langRows = langs.map(l =>
+            '<button class="lang-row ' + (l.code === currentCode ? 'active' : '') + '" onclick="app.changeLanguage(\'' + l.code + '\')">' +
+            '<span class="lang-flag">' + l.flag + '</span><span>' + l.name + '</span>' +
+            (l.code === currentCode ? '<span class="lang-check">\u2713</span>' : '') +
+            '</button>'
+        ).join('');
+        this.showModal(`
+            <h2>${this.t('settings_language')}</h2>
+            <div class="lang-grid-modal">${langRows}</div>
+        `);
+    },
+
+    changeLanguage(code) {
+        if (typeof setLang === 'function') setLang(code);
+        try { localStorage.setItem('koople_lang', code); } catch(e) {}
+        this.closeModal();
+        this.applyTranslations();
+        this.renderProfile();
+    },
+
+    showAISettings() {
+        const config = (typeof AIService !== 'undefined') ? AIService.getConfig() : { mode: 'fallback' };
+        let statusHtml;
+        if (config.mode === 'backend') {
+            statusHtml = '<div class="ai-status connected">\u2705 ' + this.t('ai_connected') + '</div>';
+        } else if (config.mode === 'direct') {
+            statusHtml = '<div class="ai-status connected">\u2705 ' + this.t('ai_connected') + ' (' + config.provider + ')</div>';
+        } else {
+            statusHtml = '<div class="ai-status demo">\uD83E\uDD16 ' + this.t('ai_demo_mode') + '</div>';
+        }
+        // Show simple status for regular users; dev form hidden behind tap
+        this.showModal(`
+            <h2>${this.t('ai_settings_title')}</h2>
+            <p class="modal-subtitle">${this.t('ai_settings_desc')}</p>
+            ${statusHtml}
+            <div id="ai-dev-toggle" style="margin-top:16px;text-align:center">
+                <button class="btn btn-ghost btn-small" onclick="document.getElementById('ai-dev-form').style.display='block';this.style.display='none'">${this.t('ai_dev_mode') || 'Developer mode'}</button>
+            </div>
+            <div id="ai-dev-form" style="display:none" class="ai-config-form">
+                <div class="input-group">
+                    <label>${this.t('ai_provider_label')}</label>
+                    <select id="ai-provider">
+                        <option value="openai" ${config.provider === 'openai' ? 'selected' : ''}>OpenAI (GPT-4o-mini)</option>
+                        <option value="anthropic" ${config.provider === 'anthropic' ? 'selected' : ''}>Anthropic (Claude)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>${this.t('ai_api_key_label')}</label>
+                    <input type="password" id="ai-api-key" placeholder="${this.t('ai_api_key_placeholder')}" value="">
+                </div>
+                <button class="btn btn-primary btn-large" onclick="app.connectAI()">${this.t('btn_connect_ai')}</button>
+                ${config.hasKey ? '<button class="btn btn-ghost" style="margin-top:8px;color:#D48A8A" onclick="app.disconnectAI()">' + this.t('ai_disconnect') + '</button>' : ''}
+            </div>
+        `);
+    },
+
+    connectAI() {
+        const provider = document.getElementById('ai-provider').value;
+        const apiKey = document.getElementById('ai-api-key').value.trim();
+        if (!apiKey) return;
+        if (typeof AIService !== 'undefined') {
+            AIService.configure(provider, apiKey);
+            AIService.saveConfig();
+        }
+        this.closeModal();
+        this.showNotification('\u2705 ' + this.t('ai_connected'));
+    },
+
+    disconnectAI() {
+        if (typeof AIService !== 'undefined') AIService.disconnect();
+        this.closeModal();
+        this.showNotification(this.t('ai_demo_mode'));
     },
 
     showNotifications() {
         this.showModal(`
-            <h2>Уведомления</h2>
-            <p class="modal-subtitle">Настройте, когда получать напоминания</p>
+            <h2>${this.t('notif_title')}</h2>
+            <p class="modal-subtitle">${this.t('notif_subtitle')}</p>
             <div class="settings-toggles">
-                <div class="setting-row"><span>Напоминания о челленджах</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
-                <div class="setting-row"><span>Новые рекомендации AI</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
-                <div class="setting-row"><span>Активность партнёра</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
-                <div class="setting-row"><span>Еженедельный отчёт</span><span class="toggle-pill" onclick="this.classList.toggle('active')"></span></div>
+                <div class="setting-row"><span>${this.t('notif_challenges')}</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
+                <div class="setting-row"><span>${this.t('notif_recommendations')}</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
+                <div class="setting-row"><span>${this.t('notif_partner')}</span><span class="toggle-pill active" onclick="this.classList.toggle('active')"></span></div>
+                <div class="setting-row"><span>${this.t('notif_weekly')}</span><span class="toggle-pill" onclick="this.classList.toggle('active')"></span></div>
             </div>
         `);
     },
 
     showPrivacy() {
         this.showModal(`
-            <h2>Приватность</h2>
-            <p class="modal-subtitle">Ваши данные под защитой</p>
+            <h2>${this.t('privacy_title')}</h2>
+            <p class="modal-subtitle">${this.t('privacy_subtitle')}</p>
             <div class="privacy-info">
-                <div class="privacy-item"><strong>Конфиденциальность чата</strong><p>Ваши сообщения медиатору никогда не передаются партнёру напрямую</p></div>
-                <div class="privacy-item"><strong>Анкета</strong><p>Ответы анализируются AI, но конкретные ответы не показываются партнёру</p></div>
-                <div class="privacy-item"><strong>Жалобы</strong><p>Ваши жалобы трансформируются в мягкие челленджи без указания источника</p></div>
+                <div class="privacy-item"><strong>${this.t('privacy_chat_title')}</strong><p>${this.t('privacy_chat_text')}</p></div>
+                <div class="privacy-item"><strong>${this.t('privacy_survey_title')}</strong><p>${this.t('privacy_survey_text')}</p></div>
+                <div class="privacy-item"><strong>${this.t('privacy_complaints_title')}</strong><p>${this.t('privacy_complaints_text')}</p></div>
             </div>
-            <button class="btn btn-secondary btn-large" onclick="app.resetData()" style="margin-top:20px;color:#f87171">Удалить все данные</button>
+            <button class="btn btn-secondary btn-large" onclick="app.resetData()" style="margin-top:20px;color:#D48A8A">${this.t('btn_delete_data')}</button>
         `);
     },
 
     showHelp() {
         this.showModal(`
-            <h2>Как работает Koople?</h2>
+            <h2>${this.t('help_title')}</h2>
             <div class="help-steps">
-                <div class="help-step"><span class="help-num">1</span><div><strong>Пройдите анкету</strong><p>40 вопросов помогут AI понять вашу пару</p></div></div>
-                <div class="help-step"><span class="help-num">2</span><div><strong>Пригласите партнёра</strong><p>Он/она тоже проходит анкету отдельно</p></div></div>
-                <div class="help-step"><span class="help-num">3</span><div><strong>Получайте челленджи</strong><p>AI создаёт персонализированные мини-задания</p></div></div>
-                <div class="help-step"><span class="help-num">4</span><div><strong>Общайтесь с медиатором</strong><p>Жалуйтесь, просите совет, хвалите партнёра</p></div></div>
-                <div class="help-step"><span class="help-num">5</span><div><strong>Растите вместе</strong><p>Отслеживайте прогресс и укрепляйте отношения</p></div></div>
+                <div class="help-step"><span class="help-num">1</span><div><strong>${this.t('help_1_title')}</strong><p>${this.t('help_1_text')}</p></div></div>
+                <div class="help-step"><span class="help-num">2</span><div><strong>${this.t('help_2_title')}</strong><p>${this.t('help_2_text')}</p></div></div>
+                <div class="help-step"><span class="help-num">3</span><div><strong>${this.t('help_3_title')}</strong><p>${this.t('help_3_text')}</p></div></div>
+                <div class="help-step"><span class="help-num">4</span><div><strong>${this.t('help_4_title')}</strong><p>${this.t('help_4_text')}</p></div></div>
+                <div class="help-step"><span class="help-num">5</span><div><strong>${this.t('help_5_title')}</strong><p>${this.t('help_5_text')}</p></div></div>
             </div>
         `);
     },
@@ -1099,9 +1380,9 @@ const app = {
         this.showModal(`
             <div style="text-align:center">
                 <h2>Koople</h2>
-                <p>AI-медиатор для пар</p>
-                <p style="color:var(--text-secondary);margin-top:12px">Версия 1.0 MVP</p>
-                <p style="color:var(--text-secondary);margin-top:8px">Помогаем парам лучше понимать друг друга через AI-анализ и мягкие челленджи</p>
+                <p>${this.t('app_tagline')}</p>
+                <p style="color:var(--text-secondary);margin-top:12px">${this.t('about_version')}</p>
+                <p style="color:var(--text-secondary);margin-top:8px">${this.t('about_desc')}</p>
             </div>
         `);
     },
@@ -1109,19 +1390,19 @@ const app = {
     // ── Complaint & Appreciation ──────────────────────────
     showComplaintModal() {
         this.showModal(`
-            <h2>\uD83D\uDE14 Что вас беспокоит?</h2>
-            <p class="modal-subtitle">Опишите ситуацию — AI-медиатор деликатно поможет решить её</p>
-            <textarea id="complaint-input" class="answer-textarea" placeholder="Например: партнёр оставляет грязную посуду в раковине..." rows="4"></textarea>
+            <h2>\uD83D\uDE14 ${this.t('complaint_title')}</h2>
+            <p class="modal-subtitle">${this.t('complaint_subtitle')}</p>
+            <textarea id="complaint-input" class="answer-textarea" placeholder="${this.t('complaint_placeholder')}" rows="4"></textarea>
             <div class="complaint-urgency">
-                <label>Насколько это важно?</label>
+                <label>${this.t('urgency_label')}</label>
                 <div class="urgency-options">
-                    <button class="urgency-btn" onclick="app.selectUrgency(this, 'low')">Мелочь</button>
-                    <button class="urgency-btn active" onclick="app.selectUrgency(this, 'medium')">Беспокоит</button>
-                    <button class="urgency-btn" onclick="app.selectUrgency(this, 'high')">Серьёзно</button>
+                    <button class="urgency-btn" onclick="app.selectUrgency(this, 'low')">${this.t('urgency_low')}</button>
+                    <button class="urgency-btn active" onclick="app.selectUrgency(this, 'medium')">${this.t('urgency_medium')}</button>
+                    <button class="urgency-btn" onclick="app.selectUrgency(this, 'high')">${this.t('urgency_high')}</button>
                 </div>
             </div>
             <input type="hidden" id="complaint-urgency" value="medium">
-            <button class="btn btn-primary btn-large" onclick="app.submitComplaint()">Отправить медиатору</button>
+            <button class="btn btn-primary btn-large" onclick="app.submitComplaint()">${this.t('btn_send_mediator')}</button>
         `);
     },
 
@@ -1139,12 +1420,10 @@ const app = {
         const urgency = urgencyEl ? urgencyEl.value : 'medium';
 
         this.state.complaints.push({ text, urgency, time: new Date().toISOString() });
-        this.addActivity('complaint', '\uD83D\uDE14', 'Вы поделились беспокойством с AI-медиатором');
+        this.addActivity('complaint', '\uD83D\uDE14', this.t('activity_concern_shared'));
         this.closeModal();
 
-        // Navigate to chat with the complaint
-        const prefix = { low: '', medium: 'Меня беспокоит: ', high: 'Мне серьёзно мешает: ' }[urgency] || 'Меня беспокоит: ';
-        this.state.chat.messages.push({ role: 'user', text: `${prefix}${text}`, time: this.getCurrentTime() });
+        this.state.chat.messages.push({ role: 'user', text: text, time: this.getCurrentTime() });
         this.navigate('mediator');
 
         this.state.chat.isTyping = true;
@@ -1155,7 +1434,7 @@ const app = {
             this.state.chat.messages.push({ role: 'assistant', text: response.text, time: this.getCurrentTime() });
             if (response.challenge) {
                 this.state.challenges.push(response.challenge);
-                this.addActivity('new_challenge', '\uD83C\uDF1F', `AI создал челлендж: «${response.challenge.title}»`);
+                this.addActivity('new_challenge', '\uD83C\uDF1F', 'AI: ' + response.challenge.title);
             }
             this.renderChat();
             this.save();
@@ -1163,12 +1442,12 @@ const app = {
     },
 
     showAppreciationModal() {
-        const pn = this.state.user.partnerName || 'партнёра';
+        const pn = this.state.user.partnerName || 'partner';
         this.showModal(`
-            <h2>\uD83D\uDC95 Похвалить ${pn}</h2>
-            <p class="modal-subtitle">Позитивная обратная связь укрепляет отношения</p>
-            <textarea id="appreciation-input" class="answer-textarea" placeholder="За что вы хотите поблагодарить или похвалить партнёра?" rows="4"></textarea>
-            <button class="btn btn-primary btn-large" onclick="app.submitAppreciation()">Отправить</button>
+            <h2>\uD83D\uDC95 ${this.t('appreciation_title_prefix')} ${pn}</h2>
+            <p class="modal-subtitle">${this.t('appreciation_subtitle')}</p>
+            <textarea id="appreciation-input" class="answer-textarea" placeholder="${this.t('appreciation_placeholder')}" rows="4"></textarea>
+            <button class="btn btn-primary btn-large" onclick="app.submitAppreciation()">${this.t('btn_send')}</button>
         `);
     },
 
@@ -1176,17 +1455,17 @@ const app = {
         const text = document.getElementById('appreciation-input').value.trim();
         if (!text) return;
         this.state.appreciations.push({ text, time: new Date().toISOString() });
-        this.addActivity('appreciation', '\uD83D\uDC95', `Вы похвалили ${this.state.user.partnerName || 'партнёра'}`);
+        this.addActivity('appreciation', '\uD83D\uDC95', this.t('activity_praised') + ' ' + (this.state.user.partnerName || 'partner'));
         this.save();
         this.closeModal();
-        this.showNotification('\uD83D\uDC95 Отправлено! Партнёр получит приятное уведомление');
+        this.showNotification('\uD83D\uDC95 ' + this.t('appreciation_sent'));
     },
 
     // ── Modals ────────────────────────────────────────────
     showModal(content) {
         const overlay = document.getElementById('modal-overlay');
         const modal = document.getElementById('modal-content');
-        modal.innerHTML = `<button class="modal-close" onclick="app.closeModal()">&times;</button>${content}`;
+        modal.innerHTML = '<button class="modal-close" onclick="app.closeModal()">&times;</button>' + content;
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';
     },

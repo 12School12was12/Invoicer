@@ -1,117 +1,154 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Koople — AI-медиатор для пар</title>
+    <title>Koople — AI Mediator for Couples</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="app">
-        <!-- Welcome Screen -->
-        <div id="screen-welcome" class="screen active">
+        <!-- ═══════ Intro Slides (3 screens explaining the app) ═══════ -->
+        <div id="screen-intro" class="screen active">
+            <div class="intro-container">
+                <div class="intro-slides">
+                    <div class="intro-slide active" data-slide="0">
+                        <div class="intro-brand">
+                            <h1 class="intro-logo">Koople</h1>
+                            <p class="intro-tagline" id="welcome-tagline-intro">AI mediator for couples</p>
+                        </div>
+                        <h2 id="intro-title-0">Your relationship deserves attention</h2>
+                        <p id="intro-desc-0">Koople helps couples understand each other better and resolve micro-conflicts before they grow</p>
+                    </div>
+                    <div class="intro-slide" data-slide="1">
+                        <div class="intro-slide-emoji">&#x1F512;</div>
+                        <h2 id="intro-title-1">Safe and confidential</h2>
+                        <p id="intro-desc-1">Each partner communicates privately with AI. Your words are never shared directly — they are transformed into gentle challenges</p>
+                    </div>
+                    <div class="intro-slide" data-slide="2">
+                        <div class="intro-slide-emoji">&#x1F331;</div>
+                        <h2 id="intro-title-2">Small steps, big changes</h2>
+                        <p id="intro-desc-2">Personalized mini-challenges help you both grow. Track progress and celebrate achievements together</p>
+                    </div>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="lang-selector" id="lang-selector">
+                    <p class="lang-selector-label" id="intro-lang-label">Choose language</p>
+                    <div class="lang-grid" id="lang-grid">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <div class="intro-dots">
+                    <span class="intro-dot active" data-dot="0"></span>
+                    <span class="intro-dot" data-dot="1"></span>
+                    <span class="intro-dot" data-dot="2"></span>
+                </div>
+                <div class="intro-actions">
+                    <button class="btn btn-ghost btn-small" id="btn-intro-skip" onclick="app.skipIntro()">Skip</button>
+                    <button class="btn btn-primary btn-large" id="btn-intro-next" onclick="app.nextIntroSlide()">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ Welcome Screen ═══════ -->
+        <div id="screen-welcome" class="screen">
             <div class="welcome-container">
                 <div class="welcome-logo">
-                    <div class="logo-icon">
-                        <svg viewBox="0 0 80 80" fill="none">
-                            <circle cx="28" cy="40" r="20" stroke="currentColor" stroke-width="3" fill="none" opacity="0.8"/>
-                            <circle cx="52" cy="40" r="20" stroke="currentColor" stroke-width="3" fill="none" opacity="0.8"/>
-                            <path d="M40 28 C36 34, 36 46, 40 52 C44 46, 44 34, 40 28Z" fill="currentColor" opacity="0.3"/>
-                        </svg>
-                    </div>
                     <h1 class="logo-text">Koople</h1>
-                    <p class="logo-tagline">AI-медиатор для пар</p>
+                    <p class="logo-tagline" id="welcome-tagline">AI Mediator for Couples</p>
                 </div>
                 <div class="welcome-features">
                     <div class="feature-item">
                         <span class="feature-icon">&#x1F9E0;</span>
-                        <span>Понимание потребностей друг друга</span>
+                        <span id="welcome-feature1">Understanding each other's needs</span>
                     </div>
                     <div class="feature-item">
                         <span class="feature-icon">&#x1F4AC;</span>
-                        <span>Безопасное пространство для желаний</span>
+                        <span id="welcome-feature2">Safe space for wishes</span>
                     </div>
                     <div class="feature-item">
                         <span class="feature-icon">&#x1F3AF;</span>
-                        <span>Мягкие челленджи для роста</span>
+                        <span id="welcome-feature3">Gentle challenges for growth</span>
                     </div>
                 </div>
                 <div class="welcome-actions">
-                    <button class="btn btn-primary btn-large" onclick="app.startOnboarding()">Начать</button>
-                    <button class="btn btn-ghost" onclick="app.showLogin()">У меня есть аккаунт</button>
+                    <button class="btn btn-primary btn-large" id="btn-start" onclick="app.startOnboarding()">Get Started</button>
+                    <button class="btn btn-ghost" id="btn-login" onclick="app.showLogin()">I have an account</button>
                 </div>
             </div>
         </div>
 
-        <!-- Login Screen -->
+        <!-- ═══════ Login Screen ═══════ -->
         <div id="screen-login" class="screen">
             <div class="screen-content centered">
                 <button class="btn-back" onclick="app.navigate('welcome')">&#8592;</button>
                 <div class="logo-small">Koople</div>
-                <h2>Вход в аккаунт</h2>
+                <h2 id="login-title">Sign In</h2>
                 <form class="form-stack" onsubmit="event.preventDefault(); app.login()">
                     <div class="input-group">
-                        <label>Email или телефон</label>
+                        <label id="login-email-label">Email or phone</label>
                         <input type="text" id="login-email" placeholder="anna@example.com" required>
                     </div>
                     <div class="input-group">
-                        <label>Пароль</label>
+                        <label id="login-password-label">Password</label>
                         <input type="password" id="login-password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-large">Войти</button>
+                    <button type="submit" class="btn btn-primary btn-large" id="login-submit-btn">Sign In</button>
                 </form>
             </div>
         </div>
 
-        <!-- Setup Profile Screen -->
+        <!-- ═══════ Setup Profile Screen ═══════ -->
         <div id="screen-setup" class="screen">
             <div class="screen-content">
                 <button class="btn-back" onclick="app.navigate('welcome')">&#8592;</button>
                 <div class="setup-header">
-                    <h2>Расскажите о себе</h2>
-                    <p class="subtitle">Это поможет настроить приложение под вас</p>
+                    <h2 id="setup-title">Tell us about yourself</h2>
+                    <p class="subtitle" id="setup-subtitle">This will help personalize the app for you</p>
                 </div>
                 <form class="form-stack" onsubmit="event.preventDefault(); app.saveProfile()">
                     <div class="input-group">
-                        <label>Ваше имя</label>
-                        <input type="text" id="setup-name" placeholder="Как вас зовут?" required>
+                        <label id="setup-name-label">Your name</label>
+                        <input type="text" id="setup-name" placeholder="What's your name?" required>
                     </div>
                     <div class="input-group">
-                        <label>Имя партнёра</label>
-                        <input type="text" id="setup-partner" placeholder="Как зовут вашего партнёра?" required>
+                        <label id="setup-partner-label">Partner's name</label>
+                        <input type="text" id="setup-partner" placeholder="What's your partner's name?" required>
                     </div>
                     <div class="input-group">
-                        <label>Как давно вы вместе?</label>
+                        <label id="setup-duration-label">How long together?</label>
                         <select id="setup-duration" required>
-                            <option value="">Выберите...</option>
-                            <option value="<6m">Менее 6 месяцев</option>
-                            <option value="6m-1y">6 месяцев — 1 год</option>
-                            <option value="1-3y">1 — 3 года</option>
-                            <option value="3-5y">3 — 5 лет</option>
-                            <option value="5-10y">5 — 10 лет</option>
-                            <option value="10y+">Более 10 лет</option>
+                            <option value="" id="setup-dur-default">Select...</option>
+                            <option value="<6m" id="setup-dur-6m">Less than 6 months</option>
+                            <option value="6m-1y" id="setup-dur-6m1y">6 months — 1 year</option>
+                            <option value="1-3y" id="setup-dur-1-3y">1 — 3 years</option>
+                            <option value="3-5y" id="setup-dur-3-5y">3 — 5 years</option>
+                            <option value="5-10y" id="setup-dur-5-10y">5 — 10 years</option>
+                            <option value="10y+" id="setup-dur-10y">More than 10 years</option>
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Вы живёте вместе?</label>
+                        <label id="setup-living-label">Do you live together?</label>
                         <div class="toggle-group">
-                            <button type="button" class="toggle-btn active" data-value="yes" onclick="app.toggleSelect(this, 'setup-living')">Да</button>
-                            <button type="button" class="toggle-btn" data-value="no" onclick="app.toggleSelect(this, 'setup-living')">Нет</button>
+                            <button type="button" class="toggle-btn active" data-value="yes" onclick="app.toggleSelect(this, 'setup-living')" id="setup-yes-btn">Yes</button>
+                            <button type="button" class="toggle-btn" data-value="no" onclick="app.toggleSelect(this, 'setup-living')" id="setup-no-btn">No</button>
                         </div>
                         <input type="hidden" id="setup-living" value="yes">
                     </div>
                     <div class="input-group">
-                        <label>Email</label>
+                        <label id="setup-email-label">Email</label>
                         <input type="email" id="setup-email" placeholder="anna@example.com" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-large">Далее</button>
+                    <button type="submit" class="btn btn-primary btn-large" id="setup-next-btn">Next</button>
                 </form>
             </div>
         </div>
 
-        <!-- Onboarding Questionnaire -->
+        <!-- ═══════ Onboarding Questionnaire ═══════ -->
         <div id="screen-onboarding" class="screen">
             <div class="screen-content">
                 <div class="onboarding-header">
@@ -122,7 +159,7 @@
                         </div>
                         <span class="progress-text" id="onboarding-progress-text">1 / 40</span>
                     </div>
-                    <button class="btn-skip" onclick="app.skipQuestion()">Пропустить</button>
+                    <button class="btn-skip" id="btn-skip-question" onclick="app.skipQuestion()">Skip</button>
                 </div>
                 <div class="onboarding-category" id="onboarding-category">
                     <span class="category-icon" id="category-icon"></span>
@@ -134,12 +171,31 @@
                     <div class="answer-area" id="answer-area"></div>
                 </div>
                 <div class="onboarding-footer">
-                    <button class="btn btn-primary btn-large" id="btn-next-question" onclick="app.nextQuestion()">Далее</button>
+                    <button class="btn btn-primary btn-large" id="btn-next-question" onclick="app.nextQuestion()">Next</button>
                 </div>
             </div>
         </div>
 
-        <!-- Onboarding Complete -->
+        <!-- ═══════ Milestone Overlay (shown at Q10, Q20, Q30) ═══════ -->
+        <div id="milestone-overlay" class="milestone-overlay">
+            <div class="milestone-card">
+                <div class="milestone-emoji" id="milestone-emoji">&#x1F389;</div>
+                <div class="milestone-progress-ring">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" stroke="#e8e8e8" stroke-width="6" fill="none"/>
+                        <circle cx="50" cy="50" r="42" stroke="var(--primary)" stroke-width="6" fill="none"
+                            stroke-dasharray="263.89" id="milestone-ring-fill"
+                            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+                    </svg>
+                    <span class="milestone-pct" id="milestone-pct">25%</span>
+                </div>
+                <h2 id="milestone-title">Great start!</h2>
+                <p id="milestone-desc">You've answered 10 questions. We already see patterns that will help your relationship!</p>
+                <button class="btn btn-primary btn-large" id="btn-milestone-continue" onclick="app.closeMilestone()">Continue</button>
+            </div>
+        </div>
+
+        <!-- ═══════ Onboarding Complete ═══════ -->
         <div id="screen-onboarding-complete" class="screen">
             <div class="screen-content centered">
                 <div class="completion-animation">
@@ -152,32 +208,32 @@
                         </svg>
                     </div>
                 </div>
-                <h2>Анкета заполнена!</h2>
-                <p class="subtitle">Koople анализирует ваши ответы и готовит персонализированные рекомендации для вашей пары</p>
+                <h2 id="complete-title">Questionnaire complete!</h2>
+                <p class="subtitle" id="complete-subtitle">Koople is analyzing your answers and preparing personalized recommendations for your couple</p>
                 <div class="invite-section">
-                    <h3>Пригласите партнёра</h3>
-                    <p>Чтобы AI-медиатор работал эффективно, партнёру тоже нужно пройти анкету</p>
+                    <h3 id="complete-invite-title">Invite your partner</h3>
+                    <p id="complete-invite-desc">For the AI mediator to work effectively, your partner needs to complete the questionnaire too</p>
                     <div class="invite-code-box">
                         <span class="invite-code" id="invite-code">KOOPLE-A7X9</span>
-                        <button class="btn-copy" onclick="app.copyInviteCode()">Копировать</button>
+                        <button class="btn-copy" id="btn-copy" onclick="app.copyInviteCode()">Copy</button>
                     </div>
-                    <button class="btn btn-secondary btn-large" onclick="app.shareInvite()">Отправить приглашение</button>
+                    <button class="btn btn-secondary btn-large" id="btn-share" onclick="app.shareInvite()">Send invitation</button>
                 </div>
-                <button class="btn btn-primary btn-large" onclick="app.goToDashboard()">Перейти в приложение</button>
+                <button class="btn btn-primary btn-large" id="btn-go-dashboard" onclick="app.goToDashboard()">Go to app</button>
             </div>
         </div>
 
-        <!-- Dashboard / Home -->
+        <!-- ═══════ Dashboard / Home ═══════ -->
         <div id="screen-dashboard" class="screen">
             <div class="dashboard-container">
                 <div class="dashboard-header">
                     <div class="header-left">
-                        <h1 class="greeting" id="greeting">Привет, Аня!</h1>
-                        <p class="greeting-sub">Как прошёл ваш день?</p>
+                        <h1 class="greeting" id="greeting">Hi there!</h1>
+                        <p class="greeting-sub" id="greeting-sub">This week's focus: Communication</p>
                     </div>
                     <div class="header-right">
                         <button class="avatar-btn" onclick="app.navigate('profile')">
-                            <div class="avatar" id="user-avatar">А</div>
+                            <div class="avatar" id="user-avatar">A</div>
                         </button>
                     </div>
                 </div>
@@ -185,7 +241,7 @@
                 <!-- Relationship Health Card -->
                 <div class="card card-health" onclick="app.navigate('insights')">
                     <div class="health-header">
-                        <span>Гармония пары</span>
+                        <span id="health-label">Couple Harmony</span>
                         <span class="health-trend">&#8593; +3%</span>
                     </div>
                     <div class="health-score">
@@ -199,18 +255,14 @@
                             <span class="score-value" id="health-score-value">78</span>
                         </div>
                         <div class="score-details" id="score-details">
-                            <div class="score-detail"><span class="dot dot-green"></span> Коммуникация: 85%</div>
-                            <div class="score-detail"><span class="dot dot-yellow"></span> Быт: 62%</div>
-                            <div class="score-detail"><span class="dot dot-green"></span> Близость: 88%</div>
-                            <div class="score-detail"><span class="dot dot-orange"></span> Баланс: 70%</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Active Challenges -->
                 <div class="section-header">
-                    <h2>Активные челленджи</h2>
-                    <button class="btn-link" onclick="app.navigate('challenges')">Все</button>
+                    <h2 id="dash-challenges-title">Active Challenges</h2>
+                    <button class="btn-link" id="dash-all-btn" onclick="app.navigate('challenges')">All</button>
                 </div>
                 <div class="challenges-scroll" id="active-challenges">
                     <!-- Filled by JS -->
@@ -220,25 +272,25 @@
                 <div class="quick-actions">
                     <button class="action-card" onclick="app.navigate('mediator')">
                         <span class="action-icon">&#x1F4AC;</span>
-                        <span class="action-label">Поговорить с медиатором</span>
+                        <span class="action-label" id="action-mediator">Talk to mediator</span>
                     </button>
                     <button class="action-card" onclick="app.showComplaintModal()">
                         <span class="action-icon">&#x1F614;</span>
-                        <span class="action-label">Меня кое-что беспокоит</span>
+                        <span class="action-label" id="action-complaint">Something bothers me</span>
                     </button>
                     <button class="action-card" onclick="app.showAppreciationModal()">
                         <span class="action-icon">&#x1F495;</span>
-                        <span class="action-label">Хочу похвалить партнёра</span>
+                        <span class="action-label" id="action-praise">Praise partner</span>
                     </button>
                     <button class="action-card" onclick="app.navigate('wishes')">
                         <span class="action-icon">&#x2B50;</span>
-                        <span class="action-label">Мои желания</span>
+                        <span class="action-label" id="action-wishes">My wishes</span>
                     </button>
                 </div>
 
                 <!-- Recent Activity -->
                 <div class="section-header">
-                    <h2>Недавнее</h2>
+                    <h2 id="dash-recent-title">Recent</h2>
                 </div>
                 <div class="activity-feed" id="activity-feed">
                     <!-- Filled by JS -->
@@ -248,30 +300,30 @@
             <nav class="bottom-nav">
                 <button class="nav-item active" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- AI Mediator Chat -->
+        <!-- ═══════ AI Mediator Chat ═══════ -->
         <div id="screen-mediator" class="screen">
             <div class="chat-container">
                 <div class="chat-header">
@@ -287,7 +339,7 @@
                         </div>
                         <div>
                             <h3>Koople AI</h3>
-                            <span class="status-online">Ваш медиатор</span>
+                            <span class="status-online" id="chat-status">Your mediator</span>
                         </div>
                     </div>
                 </div>
@@ -295,12 +347,12 @@
                     <!-- Filled by JS -->
                 </div>
                 <div class="chat-suggestions" id="chat-suggestions">
-                    <button class="suggestion-chip" onclick="app.sendSuggestion(this)">Меня беспокоит бытовая привычка партнёра</button>
-                    <button class="suggestion-chip" onclick="app.sendSuggestion(this)">Хочу обсудить наши отношения</button>
-                    <button class="suggestion-chip" onclick="app.sendSuggestion(this)">Мне сложно сказать партнёру кое-что</button>
+                    <button class="suggestion-chip" id="suggestion-1" onclick="app.sendSuggestion(this)">A household habit bothers me</button>
+                    <button class="suggestion-chip" id="suggestion-2" onclick="app.sendSuggestion(this)">I want to discuss our relationship</button>
+                    <button class="suggestion-chip" id="suggestion-3" onclick="app.sendSuggestion(this)">I find it hard to tell my partner something</button>
                 </div>
                 <div class="chat-input-area">
-                    <textarea id="chat-input" placeholder="Расскажите, что вас беспокоит..." rows="1" oninput="app.autoGrow(this)"></textarea>
+                    <textarea id="chat-input" placeholder="Tell me what's on your mind..." rows="1" oninput="app.autoGrow(this)"></textarea>
                     <button class="btn-send" onclick="app.sendMessage()" id="btn-send">
                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
@@ -309,40 +361,40 @@
             <nav class="bottom-nav">
                 <button class="nav-item" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center active" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- Challenges Screen -->
+        <!-- ═══════ Challenges Screen ═══════ -->
         <div id="screen-challenges" class="screen">
             <div class="screen-content with-nav">
                 <div class="page-header">
-                    <h1>Челленджи</h1>
-                    <p class="subtitle">Маленькие шаги к большим переменам</p>
+                    <h1 id="challenges-page-title">Challenges</h1>
+                    <p class="subtitle" id="challenges-page-subtitle">Small steps towards big changes</p>
                 </div>
                 <div class="tabs">
-                    <button class="tab active" onclick="app.switchChallengeTab('active', this)">Активные</button>
-                    <button class="tab" onclick="app.switchChallengeTab('completed', this)">Завершённые</button>
-                    <button class="tab" onclick="app.switchChallengeTab('suggested', this)">Предложенные</button>
+                    <button class="tab active" id="tab-active" onclick="app.switchChallengeTab('active', this)">Active</button>
+                    <button class="tab" id="tab-completed" onclick="app.switchChallengeTab('completed', this)">Completed</button>
+                    <button class="tab" id="tab-suggested" onclick="app.switchChallengeTab('suggested', this)">Suggested</button>
                 </div>
                 <div class="challenges-list" id="challenges-list">
                     <!-- Filled by JS -->
@@ -351,66 +403,60 @@
             <nav class="bottom-nav">
                 <button class="nav-item" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item active" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- Insights Screen -->
+        <!-- ═══════ Insights Screen ═══════ -->
         <div id="screen-insights" class="screen">
             <div class="screen-content with-nav">
                 <div class="page-header">
-                    <h1>Инсайты</h1>
-                    <p class="subtitle">Аналитика вашей пары</p>
+                    <h1 id="insights-page-title">Insights</h1>
+                    <p class="subtitle" id="insights-page-subtitle">Your couple analytics</p>
                 </div>
 
                 <div class="insights-grid">
                     <div class="insight-card">
                         <div class="insight-header">
                             <span>&#x1F4AA;</span>
-                            <h3>Сильные стороны</h3>
+                            <h3 id="strengths-title">Strengths</h3>
                         </div>
                         <ul class="insight-list" id="strengths-list">
-                            <li class="positive">Эмоциональная близость</li>
-                            <li class="positive">Общие ценности и цели</li>
-                            <li class="positive">Физическая привязанность</li>
                         </ul>
                     </div>
 
                     <div class="insight-card">
                         <div class="insight-header">
                             <span>&#x1F331;</span>
-                            <h3>Зоны роста</h3>
+                            <h3 id="growth-title">Growth areas</h3>
                         </div>
                         <ul class="insight-list" id="growth-list">
-                            <li class="growth">Распределение бытовых обязанностей</li>
-                            <li class="growth">Обсуждение финансовых планов</li>
-                            <li class="growth">Личное пространство</li>
                         </ul>
                     </div>
 
                     <div class="insight-card full-width">
                         <div class="insight-header">
                             <span>&#x1F4CA;</span>
-                            <h3>Совместимость по категориям</h3>
+                            <h3 id="compat-title">Compatibility by category</h3>
                         </div>
                         <div class="compatibility-bars" id="compatibility-bars">
                             <!-- Filled by JS -->
@@ -420,7 +466,7 @@
                     <div class="insight-card full-width">
                         <div class="insight-header">
                             <span>&#x1F4C8;</span>
-                            <h3>Прогресс за месяц</h3>
+                            <h3 id="progress-title">Monthly progress</h3>
                         </div>
                         <div class="progress-chart" id="progress-chart">
                             <!-- Filled by JS -->
@@ -430,7 +476,7 @@
                     <div class="insight-card full-width">
                         <div class="insight-header">
                             <span>&#x1F4A1;</span>
-                            <h3>Рекомендации AI</h3>
+                            <h3 id="recs-title">AI Recommendations</h3>
                         </div>
                         <div class="ai-recommendations" id="ai-recommendations">
                             <!-- Filled by JS -->
@@ -441,36 +487,36 @@
             <nav class="bottom-nav">
                 <button class="nav-item" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item active" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- Wishes Screen -->
+        <!-- ═══════ Wishes Screen ═══════ -->
         <div id="screen-wishes" class="screen">
             <div class="screen-content with-nav">
                 <div class="page-header">
                     <button class="btn-back" onclick="app.navigate('dashboard')">&#8592;</button>
-                    <h1>Мои желания</h1>
-                    <p class="subtitle">Расскажите AI, чего бы вы хотели от партнёра</p>
+                    <h1 id="wishes-page-title">My Wishes</h1>
+                    <p class="subtitle" id="wishes-page-subtitle">Tell AI what you'd like from your partner</p>
                 </div>
                 <div class="wishes-list" id="wishes-list">
                     <!-- Filled by JS -->
@@ -480,80 +526,78 @@
             <nav class="bottom-nav">
                 <button class="nav-item" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- Profile Screen -->
+        <!-- ═══════ Profile Screen ═══════ -->
         <div id="screen-profile" class="screen">
             <div class="screen-content with-nav">
                 <div class="profile-header-section">
-                    <div class="profile-avatar-large">А</div>
-                    <h2 id="profile-name">Аня</h2>
-                    <p class="profile-partner">в паре с <strong id="profile-partner-name">Миша</strong></p>
+                    <div class="profile-avatar-large">A</div>
+                    <h2 id="profile-name">User</h2>
+                    <p class="profile-partner"><span id="profile-couple-label">in a couple with</span> <strong id="profile-partner-name">Partner</strong></p>
                     <div class="profile-stats" id="profile-stats">
-                        <div class="stat">
-                            <span class="stat-value">23</span>
-                            <span class="stat-label">дня вместе</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-value">12</span>
-                            <span class="stat-label">челленджей</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-value">78%</span>
-                            <span class="stat-label">гармония</span>
-                        </div>
                     </div>
                 </div>
                 <div class="settings-list">
-                    <button class="settings-item" onclick="app.navigate('onboarding')">
+                    <button class="settings-item" onclick="app.retakeQuestionnaire()">
                         <span>&#x1F4CB;</span>
-                        <span>Пройти анкету заново</span>
+                        <span id="settings-retake">Retake questionnaire</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                     <button class="settings-item" onclick="app.showInvitePartner()">
                         <span>&#x1F48C;</span>
-                        <span>Пригласить партнёра</span>
+                        <span id="settings-invite">Invite partner</span>
+                        <span class="arrow">&#8250;</span>
+                    </button>
+                    <button class="settings-item" onclick="app.showLanguageModal()">
+                        <span>&#x1F310;</span>
+                        <span id="settings-language">Language</span>
+                        <span class="arrow">&#8250;</span>
+                    </button>
+                    <button class="settings-item" onclick="app.showAISettings()">
+                        <span>&#x1F916;</span>
+                        <span id="settings-ai">AI Settings</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                     <button class="settings-item" onclick="app.showNotifications()">
                         <span>&#x1F514;</span>
-                        <span>Уведомления</span>
+                        <span id="settings-notif">Notifications</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                     <button class="settings-item" onclick="app.showPrivacy()">
                         <span>&#x1F512;</span>
-                        <span>Приватность</span>
+                        <span id="settings-privacy">Privacy</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                     <button class="settings-item" onclick="app.showHelp()">
                         <span>&#x2753;</span>
-                        <span>Помощь и поддержка</span>
+                        <span id="settings-help">Help & support</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                     <button class="settings-item" onclick="app.showAbout()">
                         <span>&#x2139;&#xFE0F;</span>
-                        <span>О приложении</span>
+                        <span id="settings-about">About</span>
                         <span class="arrow">&#8250;</span>
                     </button>
                 </div>
@@ -561,30 +605,30 @@
             <nav class="bottom-nav">
                 <button class="nav-item" onclick="app.navigate('dashboard')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-                    <span>Главная</span>
+                    <span class="nav-label" data-nav="home">Home</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('challenges')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Челленджи</span>
+                    <span class="nav-label" data-nav="challenges">Challenges</span>
                 </button>
                 <button class="nav-item nav-center" onclick="app.navigate('mediator')">
                     <div class="nav-center-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     </div>
-                    <span>Медиатор</span>
+                    <span class="nav-label" data-nav="mediator">Mediator</span>
                 </button>
                 <button class="nav-item" onclick="app.navigate('insights')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    <span>Инсайты</span>
+                    <span class="nav-label" data-nav="insights">Insights</span>
                 </button>
                 <button class="nav-item active" onclick="app.navigate('profile')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Профиль</span>
+                    <span class="nav-label" data-nav="profile">Profile</span>
                 </button>
             </nav>
         </div>
 
-        <!-- Modal Overlay -->
+        <!-- ═══════ Modal Overlay ═══════ -->
         <div id="modal-overlay" class="modal-overlay" onclick="app.closeModal(event)">
             <div class="modal" id="modal-content" onclick="event.stopPropagation()">
                 <!-- Filled by JS -->
@@ -592,7 +636,9 @@
         </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="data.js"></script>
+    <script src="ai-service.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
