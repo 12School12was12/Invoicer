@@ -689,32 +689,7 @@ const DEMO_CHALLENGES = [
     }
 ];
 
-const DEMO_ACTIVITY = [
-    {
-        type: 'challenge_progress',
-        icon: '\u2705',
-        text: '<strong>Миша</strong> выполнил день 3 в челлендже «Чистая ванная»',
-        time: '2 часа назад'
-    },
-    {
-        type: 'ai_insight',
-        icon: '\uD83E\uDDE0',
-        text: 'AI-медиатор заметил улучшение в категории «Быт» — +8% за неделю!',
-        time: '5 часов назад'
-    },
-    {
-        type: 'challenge_complete',
-        icon: '\uD83C\uDFC6',
-        text: 'Вы оба завершили челлендж «Благодарность перед сном»!',
-        time: 'Вчера'
-    },
-    {
-        type: 'new_challenge',
-        icon: '\uD83C\uDF1F',
-        text: 'AI предложил новый челлендж: «Сюрприз-свидание»',
-        time: 'Вчера'
-    }
-];
+const DEMO_ACTIVITY = [];
 
 const DEMO_WISHES = [
     {
